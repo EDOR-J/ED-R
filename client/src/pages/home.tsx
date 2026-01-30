@@ -109,6 +109,42 @@ export default function HomePage() {
       </section>
 
       <section className="mt-6">
+        <div className="flex items-end justify-between px-1">
+          <h3
+            className="font-serif text-lg font-bold tracking-tight"
+            data-testid="text-nearby-title"
+          >
+            Nearby Artists
+          </h3>
+          <p className="text-xs text-white/45" data-testid="text-nearby-subtitle">
+            Local Pulse
+          </p>
+        </div>
+        <div className="mt-3 flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 scroll-smooth">
+          {data.contents.slice(0, 6).map((content) => (
+            <Link
+              key={content.id}
+              href={`/content/${content.id}`}
+              className="group shrink-0 w-32 focus:outline-none"
+              data-testid={`link-artist-card-${content.id}`}
+            >
+              <div className="aspect-square w-full rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 overflow-hidden group-hover:border-white/20 transition-colors">
+                <div className="h-full w-full flex items-center justify-center bg-white/5 group-active:scale-95 transition-transform">
+                  <Radio className="h-6 w-6 text-white/20" />
+                </div>
+              </div>
+              <p className="mt-2 text-xs font-medium text-white/90 truncate" data-testid={`text-artist-name-${content.id}`}>
+                {content.creator}
+              </p>
+              <p className="text-[10px] text-white/40 truncate" data-testid={`text-artist-track-${content.id}`}>
+                {content.title}
+              </p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-2">
         <div className="flex items-end justify-between">
           <h3
             className="font-serif text-lg font-bold tracking-tight"
