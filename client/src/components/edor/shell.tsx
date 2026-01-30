@@ -1,12 +1,14 @@
 import { PropsWithChildren } from "react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
+import { MiniPlayer } from "./mini-player";
 
 export default function Shell(
   props: PropsWithChildren<{ title?: string; right?: React.ReactNode }>,
 ) {
   return (
     <div className="min-h-dvh edor-grid">
+      <MiniPlayer />
       <div className="mx-auto w-full max-w-md px-4 pb-10 pt-5">
         <header className="flex items-center justify-between">
           <Link
