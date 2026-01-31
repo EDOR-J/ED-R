@@ -7,6 +7,7 @@ import { loadEdorData, getThisWeeksDrops } from "@/lib/edorStore";
 import { loadSession, setMode } from "@/lib/edorSession";
 import { useMemo, useState } from "react";
 import { MapPin, Radio, Sparkles } from "lucide-react";
+import logo from "@assets/Screenshot_20260130_133453_Gallery_1769832616518.jpeg";
 
 export default function HomePage() {
   const [, setLocation] = useLocation();
@@ -27,36 +28,17 @@ export default function HomePage() {
         </Link>
       }
     >
-      <section className="edor-noise glass rounded-3xl p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p
-              className="text-xs uppercase tracking-[0.22em] text-white/55"
-              data-testid="text-brand-kicker"
-            >
-              Place-based music + culture
-            </p>
-            <h2
-              className="mt-2 font-serif text-4xl font-bold leading-[1.02] tracking-tight"
-              data-testid="text-brand"
-            >
-              EDØR
-            </h2>
-            <p className="mt-2 text-sm text-white/70" data-testid="text-tagline">
-              Pulse nearby to unlock a drop.
-            </p>
-          </div>
-          <div className="mt-1 hidden shrink-0 sm:block">
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
-              <p className="flex items-center gap-2 text-xs text-white/70">
-                <Radio className="h-4 w-4 text-amber-300" />
-                <span data-testid="text-mode-hint">Two-week city launch MVP</span>
-              </p>
-            </div>
-          </div>
-        </div>
+      <div className="flex flex-col items-center justify-center pt-8 pb-12">
+        <img 
+          src={logo} 
+          alt="EDØR Logo" 
+          className="h-20 w-auto object-contain"
+          data-testid="img-logo"
+        />
+      </div>
 
-        <div className="mt-5">
+      <section className="edor-noise glass rounded-3xl p-5">
+        <div>
           <p className="text-xs text-white/60" data-testid="text-mode-label">
             Mode
           </p>
@@ -102,13 +84,13 @@ export default function HomePage() {
           >
             Pulse
           </Button>
-          <p className="mt-2 text-xs text-white/55" data-testid="text-pulse-helper">
+          <p className="mt-2 text-xs text-white/55 text-center" data-testid="text-pulse-helper">
             We’ll ask for location to find your nearest Pulse.
           </p>
         </div>
       </section>
 
-      <section className="mt-6">
+      <section className="mt-8">
         <div className="flex items-end justify-between px-1">
           <h3
             className="font-serif text-lg font-bold tracking-tight"
@@ -145,7 +127,7 @@ export default function HomePage() {
       </section>
 
       <section className="mt-2">
-        <div className="flex items-end justify-between">
+        <div className="flex items-end justify-between px-1">
           <h3
             className="font-serif text-lg font-bold tracking-tight"
             data-testid="text-drops-title"
@@ -202,8 +184,8 @@ export default function HomePage() {
 
       <section className="mt-6">
         <Card className="glass rounded-3xl p-4" data-testid="card-note">
-          <p className="text-sm text-white/70" data-testid="text-note">
-            Tip: scarcity is the moat — drops rotate by location + mode.
+          <p className="text-sm text-white/70 text-center italic" data-testid="text-note">
+            “Scarcity is the moat”
           </p>
         </Card>
       </section>
