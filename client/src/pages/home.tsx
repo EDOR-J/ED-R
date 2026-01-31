@@ -7,7 +7,7 @@ import { loadEdorData, getThisWeeksDrops } from "@/lib/edorStore";
 import { loadSession, setMode } from "@/lib/edorSession";
 import { useMemo, useState } from "react";
 import { MapPin, Radio, Sparkles } from "lucide-react";
-import logo from "@assets/Screenshot_20260130_133453_Gallery_1769832616518.jpeg";
+import logo from "@assets/Screenshot_20260130_133453_Gallery_1769832888373.jpeg";
 
 export default function HomePage() {
   const [, setLocation] = useLocation();
