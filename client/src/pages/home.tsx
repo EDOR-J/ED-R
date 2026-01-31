@@ -28,11 +28,11 @@ export default function HomePage() {
         </Link>
       }
     >
-      <div className="flex flex-col items-center justify-center pt-8 pb-12">
+      <div className="w-full pt-4 pb-8 overflow-hidden">
         <img 
           src={logo} 
           alt="EDØR Logo" 
-          className="h-20 w-auto object-contain"
+          className="w-full h-auto object-contain max-w-none"
           data-testid="img-logo"
         />
       </div>
