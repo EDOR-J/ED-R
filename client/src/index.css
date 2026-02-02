@@ -38,22 +38,22 @@
 }
 
 :root {
-  --background: 240 10% 4%;
+  --background: 0 0% 0%;
   --foreground: 0 0% 98%;
 
-  --card: 240 10% 7%;
+  --card: 0 0% 2%;
   --card-foreground: 0 0% 98%;
 
-  --popover: 240 10% 7%;
+  --popover: 0 0% 2%;
   --popover-foreground: 0 0% 98%;
 
   --primary: 38 92% 56%;
   --primary-foreground: 240 10% 6%;
 
-  --secondary: 240 8% 14%;
+  --secondary: 0 0% 6%;
   --secondary-foreground: 0 0% 96%;
 
-  --muted: 240 8% 14%;
+  --muted: 0 0% 6%;
   --muted-foreground: 240 5% 70%;
 
   --accent: 262 83% 62%;
@@ -62,8 +62,8 @@
   --destructive: 0 74% 50%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 240 8% 18%;
-  --input: 240 8% 18%;
+  --border: 0 0% 12%;
+  --input: 0 0% 12%;
   --ring: 38 92% 56%;
 
   --radius: 1rem;
@@ -73,22 +73,22 @@
 }
 
 .dark {
-  --background: 240 10% 4%;
+  --background: 0 0% 0%;
   --foreground: 0 0% 98%;
 
-  --card: 240 10% 7%;
+  --card: 0 0% 2%;
   --card-foreground: 0 0% 98%;
 
-  --popover: 240 10% 7%;
+  --popover: 0 0% 2%;
   --popover-foreground: 0 0% 98%;
 
   --primary: 38 92% 56%;
   --primary-foreground: 240 10% 6%;
 
-  --secondary: 240 8% 14%;
+  --secondary: 0 0% 6%;
   --secondary-foreground: 0 0% 96%;
 
-  --muted: 240 8% 14%;
+  --muted: 0 0% 6%;
   --muted-foreground: 240 5% 70%;
 
   --accent: 262 83% 62%;
@@ -97,8 +97,8 @@
   --destructive: 0 74% 50%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 240 8% 18%;
-  --input: 240 8% 18%;
+  --border: 0 0% 12%;
+  --input: 0 0% 12%;
   --ring: 38 92% 56%;
 }
 
@@ -118,11 +118,11 @@
 
 @layer utilities {
   .edor-grid {
+    background-color: hsl(0 0% 0%);
     background-image:
-      radial-gradient(1000px 500px at 50% -10%, rgba(245, 158, 11, 0.18), transparent 60%),
-      radial-gradient(900px 520px at 120% 10%, rgba(168, 85, 247, 0.16), transparent 55%),
-      radial-gradient(900px 520px at -20% 20%, rgba(56, 189, 248, 0.10), transparent 55%),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+      radial-gradient(1000px 500px at 50% -10%, rgba(245, 158, 11, 0.12), transparent 70%),
+      radial-gradient(900px 520px at 120% 10%, rgba(168, 85, 247, 0.1), transparent 60%),
+      radial-gradient(900px 520px at -20% 20%, rgba(56, 189, 248, 0.08), transparent 60%);
   }
 
   .edor-noise {
