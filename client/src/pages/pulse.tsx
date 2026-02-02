@@ -5,9 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { loadEdorData, getNearestLocation, pickContentForLocationMode } from "@/lib/edorStore";
+import { loadEdorData, getNearestLocation, pickContentForLocationMode, type PulseLocation } from "@/lib/edorStore";
 import { loadSession, setSelectedLocation } from "@/lib/edorSession";
-import { MapPin, ShieldAlert } from "lucide-react";
+import { MapPin, ShieldAlert, X } from "lucide-react";
+import { Map, Marker, Overlay } from "pigeon-maps";
+import { motion, AnimatePresence } from "framer-motion";
 
 type Status =
   | { state: "asking" }
@@ -21,6 +23,8 @@ export default function PulsePage() {
 
   const [status, setStatus] = useState<Status>({ state: "asking" });
   const [manualLocationId, setManualLocationId] = useState<string>(data.locations[0]?.id ?? "");
+  const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
+  const [activeLocation, setActiveLocation] = useState<PulseLocation | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,8 +38,10 @@ export default function PulsePage() {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           if (cancelled) return;
+          const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+          setUserCoords(coords);
           const nearest = getNearestLocation(
-            { lat: pos.coords.latitude, lng: pos.coords.longitude },
+            { lat: coords[0], lng: coords[1] },
             data.locations,
           );
           if (!nearest) {
@@ -62,10 +68,7 @@ export default function PulsePage() {
     };
   }, [data.locations]);
 
-  const chosenLocation =
-    status.state === "ready"
-      ? data.locations.find((l) => l.id === status.locationId)
-      : data.locations.find((l) => l.id === manualLocationId);
+  const center = userCoords || [37.7749, -122.4194];
 
   function continueWith(locationId: string) {
     const location = data.locations.find((l) => l.id === locationId) ?? null;
@@ -99,6 +102,58 @@ export default function PulsePage() {
         </Link>
       }
     >
+      <div className="relative h-[400px] w-full overflow-hidden rounded-3xl border border-white/10 edor-noise glass mb-6">
+        <Map 
+          height={400} 
+          defaultCenter={center as [number, number]} 
+          defaultZoom={13}
+          boxClassname="edor-map"
+        >
+          {data.locations.map((loc) => (
+            <Marker 
+              key={loc.id} 
+              anchor={[loc.lat, loc.lng]} 
+              color={activeLocation?.id === loc.id ? "hsl(var(--primary))" : "hsl(var(--accent))"}
+              onClick={() => setActiveLocation(loc)}
+            />
+          ))}
+          {userCoords && (
+            <Marker anchor={userCoords} color="white" />
+          )}
+        </Map>
+
+        <AnimatePresence>
+          {activeLocation && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="absolute bottom-4 left-4 right-4 z-10"
+            >
+              <Card className="glass p-4 rounded-2xl relative border-white/20">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="absolute top-2 right-2 h-6 w-6 text-white/40"
+                  onClick={() => setActiveLocation(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <h4 className="font-bold text-white pr-8">{activeLocation.name}</h4>
+                <p className="text-xs text-white/60 mt-1">{activeLocation.description}</p>
+                <Button 
+                  size="sm" 
+                  className="w-full mt-3 h-9 rounded-xl text-xs font-bold"
+                  onClick={() => continueWith(activeLocation.id)}
+                >
+                  Pulse here
+                </Button>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       <Card className="edor-noise glass rounded-3xl p-5" data-testid="card-pulse-status">
         {status.state === "asking" ? (
           <div>
@@ -111,109 +166,59 @@ export default function PulsePage() {
           </div>
         ) : null}
 
-        {status.state === "ready" && chosenLocation ? (
+        {status.state === "ready" && !activeLocation && (
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-white/55" data-testid="text-nearest-label">
-              Nearest Pulse
+              Nearest Pulse Detected
             </p>
-            <p className="mt-2 text-lg font-semibold text-white" data-testid="text-nearest-name">
-              {chosenLocation.name}
+            <p className="mt-2 text-lg font-semibold text-white">
+              {data.locations.find(l => l.id === status.locationId)?.name}
             </p>
-            <p className="mt-1 text-sm text-white/65" data-testid="text-nearest-desc">
-              {chosenLocation.description}
-            </p>
-            <p className="mt-2 text-xs text-white/50" data-testid="text-nearest-distance">
-              {typeof status.distanceMeters === "number"
-                ? `${Math.round(status.distanceMeters)}m away`
-                : ""}
-            </p>
-
-            <div className="mt-4 grid gap-2">
+            <div className="mt-4">
               <Button
                 className="w-full h-12 rounded-2xl"
-                onClick={() => continueWith(chosenLocation.id)}
-                data-testid="button-unlock"
+                onClick={() => continueWith(status.locationId)}
               >
                 Unlock this Pulse
               </Button>
-              <Button
-                variant="secondary"
-                className="w-full h-12 rounded-2xl"
-                onClick={() => {
-                  setStatus({ state: "denied" });
-                  setManualLocationId(chosenLocation.id);
-                }}
-                data-testid="button-choose-manual"
-              >
-                Choose a different Pulse
-              </Button>
             </div>
           </div>
-        ) : null}
+        )}
 
-        {status.state === "denied" ? (
+        {status.state === "denied" && (
           <div>
             <div className="flex items-start gap-3">
               <div className="mt-0.5 rounded-2xl border border-white/10 bg-white/5 p-2">
                 <ShieldAlert className="h-5 w-5 text-amber-300" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white" data-testid="text-denied-title">
-                  Location not available
-                </p>
-                <p className="mt-1 text-xs text-white/60" data-testid="text-denied-sub">
-                  Select a Pulse location manually to continue.
-                </p>
+                <p className="text-sm font-semibold text-white">Manual Selection</p>
+                <p className="mt-1 text-xs text-white/60">Choose a location from the map or list below.</p>
               </div>
             </div>
 
-            <div className="mt-4 grid gap-2">
-              <div>
-                <p className="text-xs text-white/60" data-testid="text-manual-label">
-                  Pulse location
-                </p>
-                <div className="mt-2">
-                  <Select
-                    value={manualLocationId}
-                    onValueChange={(v) => setManualLocationId(v)}
-                  >
-                    <SelectTrigger
-                      className="h-12 rounded-2xl border-white/10 bg-white/5 text-white"
-                      data-testid="select-location"
-                    >
-                      <SelectValue placeholder="Select a Pulse" />
-                    </SelectTrigger>
-                    <SelectContent className="border-white/10 bg-[#0b0b10]">
-                      {data.locations.map((l) => (
-                        <SelectItem key={l.id} value={l.id} data-testid={`option-location-${l.id}`}>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-sky-300" />
-                            <span>{l.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
+            <div className="mt-4">
+              <Select value={manualLocationId} onValueChange={setManualLocationId}>
+                <SelectTrigger className="h-12 rounded-2xl border-white/10 bg-white/5 text-white">
+                  <SelectValue placeholder="Select a Pulse" />
+                </SelectTrigger>
+                <SelectContent className="border-white/10 bg-black">
+                  {data.locations.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
-                className="w-full h-12 rounded-2xl"
+                className="w-full h-12 rounded-2xl mt-3"
                 onClick={() => continueWith(manualLocationId)}
-                data-testid="button-continue-manual"
-                disabled={!manualLocationId}
               >
                 Continue
               </Button>
             </div>
-
-            {chosenLocation ? (
-              <p className="mt-3 text-xs text-white/50" data-testid="text-manual-preview">
-                {chosenLocation.description}
-              </p>
-            ) : null}
           </div>
-        ) : null}
+        )}
       </Card>
     </Shell>
   );
