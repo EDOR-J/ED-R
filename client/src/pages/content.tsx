@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import { loadEdorData } from "@/lib/edorStore";
-import { loadSession, setLastContentId } from "@/lib/edorSession";
+import { loadSession, setLastContentId, getLatestSession } from "@/lib/edorSession";
 import { Pause, Play, SkipBack } from "lucide-react";
 
 function useQuery() {
@@ -19,12 +19,17 @@ export default function ContentPage() {
 
   const data = useMemo(() => loadEdorData(), []);
   const session = useMemo(() => loadSession(), []);
+  const latestSession = useMemo(() => getLatestSession(), []);
   const q = useQuery();
 
   const content = data.contents.find((c) => c.id === contentId);
   const locId = q.get("loc") ?? session.selectedLocationId;
   const location = data.locations.find((l) => l.id === locId);
   const mode = (q.get("mode") ?? session.mode) as any;
+
+  // Circle is only available for the most recent session of this specific content
+  const isLatestForThisContent = latestSession?.contentId === contentId && latestSession?.nodeId === locId;
+  const canStartCircle = location?.isPermanent && isLatestForThisContent;
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -121,7 +126,7 @@ export default function ContentPage() {
         <div className="mt-5 grid gap-2">
           <audio ref={audioRef} src={content.audioUrl} preload="none" />
 
-          {location?.isPermanent ? (
+          {canStartCircle ? (
             <Card className="bg-primary/5 border-primary/20 rounded-2xl p-4 mb-2">
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
@@ -136,6 +141,12 @@ export default function ContentPage() {
                 </Button>
               </div>
             </Card>
+          ) : location?.isPermanent ? (
+            <div className="px-1 mb-2">
+              <p className="text-[10px] text-white/30 uppercase font-bold tracking-widest">
+                Circle unavailable (Must Pulse to join)
+              </p>
+            </div>
           ) : (
             <div className="px-1 mb-2">
               <p className="text-[10px] text-white/30 uppercase font-bold tracking-widest">

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { loadEdorData, getNearestLocation, pickContentForLocationMode, type PulseLocation } from "@/lib/edorStore";
-import { loadSession, setSelectedLocation } from "@/lib/edorSession";
+import { loadSession, setSelectedLocation, addUnlockedSession } from "@/lib/edorSession";
 import { MapPin, ShieldAlert, X } from "lucide-react";
 import { Map, Marker, Overlay } from "pigeon-maps";
 import { motion, AnimatePresence } from "framer-motion";
@@ -72,8 +72,7 @@ export default function PulsePage() {
 
   function continueWith(locationId: string) {
     const location = data.locations.find((l) => l.id === locationId) ?? null;
-    setSelectedLocation(location);
-
+    
     const picked = pickContentForLocationMode(data, {
       locationId,
       mode: session.mode,
@@ -86,6 +85,7 @@ export default function PulsePage() {
       return;
     }
 
+    addUnlockedSession(locationId, picked.content.id, session.mode);
     setLocation(`/content/${picked.content.id}?loc=${locationId}&mode=${session.mode}`);
   }
 

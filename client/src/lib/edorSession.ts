@@ -1,10 +1,19 @@
 import type { PulseLocation, PulseMode } from "@/lib/edorStore";
 
+export type UnlockedSession = {
+  id: string;
+  nodeId: string;
+  contentId: string;
+  mode: PulseMode;
+  timestamp: string;
+};
+
 export type PulseSession = {
   mode: PulseMode;
   lastLocationId?: string;
   selectedLocationId?: string;
   lastContentId?: string;
+  unlockedSessions: UnlockedSession[];
 };
 
 const KEY = "edor:pulse:session:v1";
@@ -16,9 +25,33 @@ export function loadSession(): PulseSession {
   } catch {
     // ignore
   }
-  const init: PulseSession = { mode: "discover" };
+  const init: PulseSession = { mode: "discover", unlockedSessions: [] };
   saveSession(init);
   return init;
+}
+
+export function addUnlockedSession(nodeId: string, contentId: string, mode: PulseMode) {
+  const s = loadSession();
+  const session: UnlockedSession = {
+    id: Math.random().toString(36).slice(2),
+    nodeId,
+    contentId,
+    mode,
+    timestamp: new Date().toISOString()
+  };
+  const next = { 
+    ...s, 
+    lastContentId: contentId,
+    selectedLocationId: nodeId,
+    unlockedSessions: [...s.unlockedSessions, session] 
+  };
+  saveSession(next);
+  return session;
+}
+
+export function getLatestSession() {
+  const s = loadSession();
+  return s.unlockedSessions[s.unlockedSessions.length - 1];
 }
 
 export function saveSession(s: PulseSession) {
