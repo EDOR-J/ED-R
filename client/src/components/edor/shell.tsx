@@ -44,7 +44,7 @@ export default function Shell(
         <main className={cn("mt-6")}>{props.children}</main>
 
         <footer className="mt-10 text-center text-xs text-white/45">
-          <p data-testid="text-footer">Scarcity is the moat.</p>
+          <p data-testid="text-footer"></p>
         </footer>
       </div>
     </div>

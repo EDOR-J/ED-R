@@ -6,6 +6,7 @@ export type PulseLocation = {
   description: string;
   lat: number;
   lng: number;
+  isPermanent: boolean;
 };
 
 export type PulseContent = {
@@ -240,6 +241,7 @@ function seedData(): EdorData {
       description: "A dense corner of the city—street sound, steps, and motion.",
       lat: 37.787994,
       lng: -122.407437,
+      isPermanent: true,
     },
     {
       id: "loc_dolores",
@@ -247,6 +249,7 @@ function seedData(): EdorData {
       description: "Wind, laughter, and the skyline. A Park-mode anchor.",
       lat: 37.759615,
       lng: -122.4269,
+      isPermanent: false,
     },
     {
       id: "loc_ferry",
@@ -254,6 +257,7 @@ function seedData(): EdorData {
       description: "Footsteps and echoes—an indoor pulse with coastal light.",
       lat: 37.7955,
       lng: -122.3937,
+      isPermanent: true,
     },
     {
       id: "loc_oak",
@@ -261,6 +265,7 @@ function seedData(): EdorData {
       description: "Open water energy and percussion from the path.",
       lat: 37.8014,
       lng: -122.2585,
+      isPermanent: false,
     },
   ];
 

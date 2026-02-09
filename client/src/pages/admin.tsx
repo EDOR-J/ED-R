@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import {
   addAssignment,
   addContent,
@@ -196,11 +197,11 @@ export default function AdminPage() {
 }
 
 function LocationsPanel(props: {
-  locations: Array<{ id: string; name: string; description: string; lat: number; lng: number }>;
-  onCreate: (v: { name: string; description: string; lat: number; lng: number }) => void;
+  locations: Array<{ id: string; name: string; description: string; lat: number; lng: number; isPermanent: boolean }>;
+  onCreate: (v: { name: string; description: string; lat: number; lng: number; isPermanent: boolean }) => void;
   onUpdate: (
     id: string,
-    patch: Partial<{ name: string; description: string; lat: number; lng: number }>,
+    patch: Partial<{ name: string; description: string; lat: number; lng: number; isPermanent: boolean }>,
   ) => void;
   onDelete: (id: string) => void;
 }) {
@@ -208,6 +209,7 @@ function LocationsPanel(props: {
   const [description, setDescription] = useState("");
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
+  const [isPermanent, setIsPermanent] = useState(false);
 
   return (
     <div className="grid gap-3">
@@ -256,6 +258,15 @@ function LocationsPanel(props: {
               />
             </Labeled>
           </div>
+          <div className="flex items-center justify-between py-2">
+            <Label htmlFor="loc-perm" className="text-xs text-white/60">Permanent Location</Label>
+            <Switch
+              id="loc-perm"
+              checked={isPermanent}
+              onCheckedChange={setIsPermanent}
+              data-testid="switch-location-permanent"
+            />
+          </div>
           <Button
             className="h-11 rounded-2xl"
             onClick={() => {
@@ -265,11 +276,12 @@ function LocationsPanel(props: {
                 toast("Fill all fields", { description: "Name, lat, and lng are required" });
                 return;
               }
-              props.onCreate({ name: name.trim(), description: description.trim(), lat: la, lng: ln });
+              props.onCreate({ name: name.trim(), description: description.trim(), lat: la, lng: ln, isPermanent });
               setName("");
               setDescription("");
               setLat("");
               setLng("");
+              setIsPermanent(false);
             }}
             data-testid="button-add-location"
           >
@@ -291,14 +303,15 @@ function LocationsPanel(props: {
 }
 
 function LocationRow(props: {
-  loc: { id: string; name: string; description: string; lat: number; lng: number };
-  onUpdate: (patch: Partial<{ name: string; description: string; lat: number; lng: number }>) => void;
+  loc: { id: string; name: string; description: string; lat: number; lng: number; isPermanent: boolean };
+  onUpdate: (patch: Partial<{ name: string; description: string; lat: number; lng: number; isPermanent: boolean }>) => void;
   onDelete: () => void;
 }) {
   const [name, setName] = useState(props.loc.name);
   const [description, setDescription] = useState(props.loc.description);
   const [lat, setLat] = useState(String(props.loc.lat));
   const [lng, setLng] = useState(String(props.loc.lng));
+  const [isPermanent, setIsPermanent] = useState(props.loc.isPermanent);
 
   return (
     <Card className="glass rounded-3xl p-4" data-testid={`card-location-${props.loc.id}`}>
@@ -365,6 +378,16 @@ function LocationRow(props: {
           </Labeled>
         </div>
 
+        <div className="flex items-center justify-between py-2">
+          <Label htmlFor={`perm-${props.loc.id}`} className="text-xs text-white/60">Permanent Location</Label>
+          <Switch
+            id={`perm-${props.loc.id}`}
+            checked={isPermanent}
+            onCheckedChange={setIsPermanent}
+            data-testid={`switch-location-permanent-${props.loc.id}`}
+          />
+        </div>
+
         <Button
           className="h-11 rounded-2xl"
           onClick={() => {
@@ -379,6 +402,7 @@ function LocationRow(props: {
               description: description.trim(),
               lat: la,
               lng: ln,
+              isPermanent,
             });
           }}
           data-testid={`button-save-location-${props.loc.id}`}
