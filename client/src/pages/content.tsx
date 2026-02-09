@@ -121,6 +121,29 @@ export default function ContentPage() {
         <div className="mt-5 grid gap-2">
           <audio ref={audioRef} src={content.audioUrl} preload="none" />
 
+          {location?.isPermanent ? (
+            <Card className="bg-primary/5 border-primary/20 rounded-2xl p-4 mb-2">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-xs font-bold text-primary uppercase tracking-wider">Listening Circle Available</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="sm" className="rounded-xl border-primary/20 text-xs font-bold h-9">
+                  Start Circle
+                </Button>
+                <Button variant="outline" size="sm" className="rounded-xl border-primary/20 text-xs font-bold h-9">
+                  Join Circle
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <div className="px-1 mb-2">
+              <p className="text-[10px] text-white/30 uppercase font-bold tracking-widest">
+                Solo Pulse (Circle not available)
+              </p>
+            </div>
+          )}
+
           <Button
             className="h-12 w-full rounded-2xl"
             onClick={togglePlay}
