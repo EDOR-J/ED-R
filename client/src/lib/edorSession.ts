@@ -8,12 +8,18 @@ export type UnlockedSession = {
   timestamp: string;
 };
 
+export type RoomEvent = 
+  | { type: 'PLAY', at: number, timestamp: number }
+  | { type: 'PAUSE', at: number, timestamp: number }
+  | { type: 'SEEK', at: number, timestamp: number };
+
 export type ListeningRoom = {
   id: string; // nodeId-contentId-window
   nodeId: string;
   contentId: string;
   expiresAt: string;
   hostId: string; // current user for mockup
+  lastEvent?: RoomEvent;
 };
 
 export type PulseSession = {
@@ -45,6 +51,14 @@ export function loadSession(): PulseSession {
   const init: PulseSession = { mode: "discover", unlockedSessions: [] };
   saveSession(init);
   return init;
+}
+
+export function updateRoomEvent(event: RoomEvent) {
+  const s = loadSession();
+  if (s.activeRoom) {
+    s.activeRoom.lastEvent = event;
+    saveSession(s);
+  }
 }
 
 export function startRoom(nodeId: string, contentId: string) {
