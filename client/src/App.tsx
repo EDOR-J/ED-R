@@ -8,6 +8,7 @@ import HomePage from "./pages/home";
 import PulsePage from "./pages/pulse";
 import ContentPage from "./pages/content";
 import AdminPage from "./pages/admin";
+import CircleRoom from "./pages/circle";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/pulse" component={PulsePage} />
       <Route path="/content/:contentId" component={ContentPage} />
       <Route path="/admin" component={AdminPage} />
+      <Route path="/circle" component={CircleRoom} />
       <Route component={NotFound} />
     </Switch>
   );

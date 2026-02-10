@@ -8,12 +8,21 @@ export type UnlockedSession = {
   timestamp: string;
 };
 
+export type ListeningRoom = {
+  id: string; // nodeId-contentId-window
+  nodeId: string;
+  contentId: string;
+  expiresAt: string;
+  hostId: string; // current user for mockup
+};
+
 export type PulseSession = {
   mode: PulseMode;
   lastLocationId?: string;
   selectedLocationId?: string;
   lastContentId?: string;
   unlockedSessions: UnlockedSession[];
+  activeRoom?: ListeningRoom;
 };
 
 const KEY = "edor:pulse:session:v1";
@@ -21,13 +30,46 @@ const KEY = "edor:pulse:session:v1";
 export function loadSession(): PulseSession {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as PulseSession;
+    if (raw) {
+      const s = JSON.parse(raw) as PulseSession;
+      // Handle room expiration
+      if (s.activeRoom && new Date(s.activeRoom.expiresAt) < new Date()) {
+        delete s.activeRoom;
+        saveSession(s);
+      }
+      return s;
+    }
   } catch {
     // ignore
   }
   const init: PulseSession = { mode: "discover", unlockedSessions: [] };
   saveSession(init);
   return init;
+}
+
+export function startRoom(nodeId: string, contentId: string) {
+  const s = loadSession();
+  const expiresAt = new Date();
+  expiresAt.setMinutes(expiresAt.getMinutes() + 60);
+  
+  const room: ListeningRoom = {
+    id: `${nodeId}-${contentId}-${Math.floor(Date.now() / (60 * 60 * 1000))}`,
+    nodeId,
+    contentId,
+    expiresAt: expiresAt.toISOString(),
+    hostId: "me"
+  };
+  
+  const next = { ...s, activeRoom: room };
+  saveSession(next);
+  return room;
+}
+
+export function endRoom() {
+  const s = loadSession();
+  const next = { ...s };
+  delete next.activeRoom;
+  saveSession(next);
 }
 
 export function addUnlockedSession(nodeId: string, contentId: string, mode: PulseMode) {

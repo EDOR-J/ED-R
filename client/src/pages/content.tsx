@@ -4,8 +4,9 @@ import { Card } from "@/components/ui/card";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import { loadEdorData } from "@/lib/edorStore";
-import { loadSession, setLastContentId, getLatestSession } from "@/lib/edorSession";
-import { Pause, Play, SkipBack } from "lucide-react";
+import { loadSession, setLastContentId, getLatestSession, startRoom } from "@/lib/edorSession";
+import { Pause, Play, SkipBack, Users } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 function useQuery() {
   const [loc] = useLocation();
@@ -31,8 +32,32 @@ export default function ContentPage() {
   const isLatestForThisContent = latestSession?.contentId === contentId && latestSession?.nodeId === locId;
   const canStartCircle = location?.isPermanent && isLatestForThisContent;
 
+  const [inRoom, setInRoom] = useState(!!session.activeRoom && session.activeRoom.contentId === contentId);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    if (session.activeRoom && session.activeRoom.contentId === contentId) {
+      setInRoom(true);
+    } else {
+      setInRoom(false);
+    }
+  }, [session.activeRoom, contentId]);
+
+  function handleStartCircle() {
+    if (locId && contentId) {
+      startRoom(locId, contentId);
+      setLocation("/circle");
+    }
+  }
+
+  function handleJoinCircle() {
+    if (locId && contentId) {
+      startRoom(locId, contentId); // In mockup, join also creates if needed
+      setLocation("/circle");
+    }
+  }
 
   useEffect(() => {
     if (contentId) setLastContentId(contentId);
@@ -133,10 +158,20 @@ export default function ContentPage() {
                 <span className="text-xs font-bold text-primary uppercase tracking-wider">Listening Circle Available</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" size="sm" className="rounded-xl border-primary/20 text-xs font-bold h-9">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="rounded-xl border-primary/20 text-xs font-bold h-9"
+                  onClick={handleStartCircle}
+                >
                   Start Circle
                 </Button>
-                <Button variant="outline" size="sm" className="rounded-xl border-primary/20 text-xs font-bold h-9">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="rounded-xl border-primary/20 text-xs font-bold h-9"
+                  onClick={handleJoinCircle}
+                >
                   Join Circle
                 </Button>
               </div>

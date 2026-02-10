@@ -1,0 +1,128 @@
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Shell } from "@/components/edor/shell";
+import { endRoom, loadSession } from "@/lib/edorSession";
+import { loadEdorData } from "@/lib/edorStore";
+import { MessageSquare, Users, X, Clock } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { useLocation } from "wouter";
+
+export default function CircleRoom() {
+  const [, setLocation] = useLocation();
+  const session = useMemo(() => loadSession(), []);
+  const data = useMemo(() => loadEdorData(), []);
+
+  const room = session.activeRoom;
+  const location = data.locations.find(l => l.id === room?.nodeId);
+  const content = data.contents.find(c => c.id === room?.contentId);
+
+  const [timeLeft, setTimeLeft] = useState<string>("");
+
+  useEffect(() => {
+    if (!room) {
+      setLocation("/");
+      return;
+    }
+
+    const timer = setInterval(() => {
+      const diff = new Date(room.expiresAt).getTime() - new Date().getTime();
+      if (diff <= 0) {
+        handleEnd();
+        return;
+      }
+      const mins = Math.floor(diff / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      setTimeLeft(`${mins}:${secs.toString().padStart(2, '0')}`);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [room]);
+
+  function handleEnd() {
+    endRoom();
+    if (content) {
+      setLocation(`/content/${content.id}?loc=${location?.id}`);
+    } else {
+      setLocation("/");
+    }
+  }
+
+  if (!room || !location || !content) return null;
+
+  return (
+    <Shell
+      title={`Circle: ${location.name}`}
+      right={
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="rounded-full text-white/40"
+          onClick={handleEnd}
+        >
+          <X className="h-5 w-5" />
+        </Button>
+      }
+    >
+      <div className="px-6 py-4 flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-xs font-bold text-primary uppercase tracking-wider">Live Session</span>
+          </div>
+          <div className="flex items-center gap-2 text-white/40">
+            <Clock className="h-3 w-3" />
+            <span className="text-[10px] font-bold">{timeLeft} remaining</span>
+          </div>
+        </div>
+
+        <Card className="bg-white/5 border-white/10 rounded-3xl p-6 flex flex-col items-center text-center gap-4">
+          <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20">
+            <Users className="h-10 w-10 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white mb-1">
+              Listening Circle — {location.name}
+            </h2>
+            <p className="text-sm text-white/60">
+              Now listening to <span className="text-primary font-bold">{content.title}</span>
+            </p>
+          </div>
+        </Card>
+
+        <div className="flex-1 min-h-[300px] flex flex-col items-center justify-center text-center px-4 gap-4">
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 max-w-[200px]">
+            <p className="text-xs text-white/40 leading-relaxed italic">
+              "You are in a sacred space. Connect with others through the sound."
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex -space-x-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-10 w-10 rounded-full border-2 border-black bg-white/10 flex items-center justify-center overflow-hidden">
+                  <div className="h-full w-full bg-gradient-to-tr from-white/10 to-transparent" />
+                </div>
+              ))}
+              <div className="h-10 w-10 rounded-full border-2 border-black bg-primary flex items-center justify-center text-[10px] font-bold text-black">
+                +12
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <Button className="flex-1 h-14 rounded-2xl gap-2 font-bold text-sm bg-white text-black hover:bg-white/90">
+            <MessageSquare className="h-4 w-4" />
+            Join Chat
+          </Button>
+          <Button 
+            variant="outline" 
+            className="h-14 rounded-2xl border-white/10 text-white/60 hover:text-white"
+            onClick={handleEnd}
+          >
+            Leave
+          </Button>
+        </div>
+      </div>
+    </Shell>
+  );
+}
