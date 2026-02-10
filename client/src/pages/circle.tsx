@@ -1,11 +1,13 @@
+import Shell from "@/components/edor/shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Shell } from "@/components/edor/shell";
 import { endRoom, loadSession } from "@/lib/edorSession";
 import { loadEdorData } from "@/lib/edorStore";
-import { MessageSquare, Users, X, Clock } from "lucide-react";
+import { MessageSquare, Users, X, Clock, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { useMemo, useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function CircleRoom() {
   const [, setLocation] = useLocation();
@@ -110,6 +112,31 @@ export default function CircleRoom() {
         </div>
 
         <div className="flex gap-3">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="h-14 w-14 rounded-2xl border-white/10 text-white/60 hover:text-white shrink-0">
+                <QrCode className="h-5 w-5" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-[#0A0A0A] border-white/10 text-white">
+              <DialogHeader>
+                <DialogTitle className="text-center font-bold">Invite to Circle</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col items-center gap-6 py-4">
+                <div className="bg-white p-4 rounded-3xl">
+                  <QRCodeSVG 
+                    value={`${window.location.origin}/pulse?join=${room.id}&loc=${location.id}`} 
+                    size={200}
+                    level="H"
+                  />
+                </div>
+                <p className="text-center text-sm text-white/60 px-4">
+                  Others must be at <span className="text-primary font-bold">{location.name}</span> to join this session.
+                </p>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Button className="flex-1 h-14 rounded-2xl gap-2 font-bold text-sm bg-white text-black hover:bg-white/90">
             <MessageSquare className="h-4 w-4" />
             Join Chat

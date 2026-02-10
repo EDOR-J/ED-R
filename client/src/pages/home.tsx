@@ -3,11 +3,18 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Card } from "@/components/ui/card";
 import { Link, useLocation } from "wouter";
-import { loadEdorData, getThisWeeksDrops } from "@/lib/edorStore";
-import { loadSession, setMode } from "@/lib/edorSession";
-import { useMemo, useState } from "react";
-import { MapPin, Radio, Sparkles } from "lucide-react";
+import { loadEdorData, getThisWeeksDrops, getNearestLocation } from "@/lib/edorStore";
+import { loadSession, setMode, startRoom } from "@/lib/edorSession";
+import { useMemo, useState, useEffect } from "react";
+import { MapPin, Radio, Sparkles, Scan } from "lucide-react";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import logo from "@assets/Screenshot_20260130_133453_Gallery_1769832888373.jpeg";
+
+function useQuery() {
+  const [loc] = useLocation();
+  return useMemo(() => new URLSearchParams(loc.split("?")[1] ?? ""), [loc]);
+}
 
 export default function HomePage() {
   const [, setLocation] = useLocation();
@@ -15,6 +22,38 @@ export default function HomePage() {
   const data = useMemo(() => loadEdorData(), []);
 
   const drops = useMemo(() => getThisWeeksDrops(data, 5), [data]);
+  const q = useQuery();
+
+  useEffect(() => {
+    const joinId = q.get("join");
+    const locId = q.get("loc");
+    
+    if (joinId && locId) {
+      // Logic for joining via QR: must be at location
+      if (!navigator.geolocation) {
+        toast.error("Location required to join Circle");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const targetLoc = data.locations.find(l => l.id === locId);
+        if (!targetLoc) return;
+
+        const nearest = getNearestLocation(
+          { lat: pos.coords.latitude, lng: pos.coords.longitude },
+          [targetLoc]
+        );
+
+        if (nearest && nearest.distanceMeters < 100) {
+          startRoom(locId, joinId.split('-')[1]); // contentId is 2nd part of joinId
+          setLocation("/circle");
+          toast.success(`Joined Circle at ${targetLoc.name}`);
+        } else {
+          toast.error("You must be at the location to join this Circle.");
+        }
+      });
+    }
+  }, [q, data.locations]);
 
   return (
     <Shell
@@ -84,6 +123,29 @@ export default function HomePage() {
           >
             Pulse
           </Button>
+          <div className="mt-4 flex gap-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex-1 rounded-2xl h-12 border-white/10 text-white/60 text-xs gap-2">
+                  <Scan className="h-4 w-4" />
+                  Scan to Join
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-[#0A0A0A] border-white/10 text-white">
+                <DialogHeader>
+                  <DialogTitle className="text-center">Scan Circle QR</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-6 py-8">
+                  <div className="h-48 w-48 border-2 border-dashed border-white/20 rounded-3xl flex items-center justify-center">
+                    <Scan className="h-12 w-12 text-white/20 animate-pulse" />
+                  </div>
+                  <p className="text-center text-xs text-white/40 max-w-[200px]">
+                    Point your camera at a host's QR code to join their Listening Circle.
+                  </p>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
           <p className="mt-2 text-xs text-white/55 text-center" data-testid="text-pulse-helper">
             We’ll ask for location to find your nearest Pulse.
           </p>
