@@ -9,6 +9,7 @@ import PulsePage from "./pages/pulse";
 import ContentPage from "./pages/content";
 import AdminPage from "./pages/admin";
 import CircleRoom from "./pages/circle";
+import LibraryPage from "./pages/library";
 
 function Router() {
   return (
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/content/:contentId" component={ContentPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/circle" component={CircleRoom} />
+      <Route path="/library" component={LibraryPage} />
       <Route component={NotFound} />
     </Switch>
   );
