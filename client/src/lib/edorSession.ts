@@ -31,6 +31,8 @@ export type UnlockedItem = {
   nodeId: string;
   locationName: string;
   unlockedAt: string;
+  lastUnlockedAt?: string;
+  unlockCount: number;
   audioUrl: string;
   artworkUrl: string;
 };
@@ -46,6 +48,10 @@ export type PulseSession = {
 };
 
 const KEY = "edor:pulse:session:v1";
+
+export function saveSession(s: PulseSession) {
+  localStorage.setItem(KEY, JSON.stringify(s));
+}
 
 export function loadSession(): PulseSession {
   try {
@@ -68,17 +74,34 @@ export function loadSession(): PulseSession {
   return init;
 }
 
-export function addToLibrary(item: Omit<UnlockedItem, "id">) {
+export function addToLibrary(item: Omit<UnlockedItem, "id" | "unlockCount">) {
   const s = loadSession();
+  
+  // Find existing entry for this contentId
+  const existingIndex = s.library.findIndex(i => i.contentId === item.contentId);
+  
+  if (existingIndex > -1) {
+    const existing = s.library[existingIndex];
+    const updated: UnlockedItem = {
+      ...existing,
+      ...item,
+      lastUnlockedAt: new Date().toISOString(),
+      unlockCount: (existing.unlockCount || 1) + 1
+    };
+    
+    const nextLibrary = [...s.library];
+    nextLibrary[existingIndex] = updated;
+    const next = { ...s, library: nextLibrary };
+    saveSession(next);
+    return updated;
+  }
+
   const newItem: UnlockedItem = {
     ...item,
-    id: Math.random().toString(36).slice(2)
+    id: Math.random().toString(36).slice(2),
+    unlockCount: 1
   };
   
-  // Prevent duplicates
-  const exists = s.library.some(i => i.contentId === item.contentId && i.nodeId === item.nodeId);
-  if (exists) return;
-
   const next = { ...s, library: [newItem, ...s.library] };
   saveSession(next);
   return newItem;
@@ -139,10 +162,6 @@ export function addUnlockedSession(nodeId: string, contentId: string, mode: Puls
 export function getLatestSession() {
   const s = loadSession();
   return s.unlockedSessions[s.unlockedSessions.length - 1];
-}
-
-export function saveSession(s: PulseSession) {
-  localStorage.setItem(KEY, JSON.stringify(s));
 }
 
 export function setMode(mode: PulseMode) {

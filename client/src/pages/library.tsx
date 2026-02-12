@@ -1,8 +1,7 @@
 import Shell from "@/components/edor/shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { loadSession } from "@/lib/edorSession";
-import { loadEdorData } from "@/lib/edorStore";
+import { loadSession, type UnlockedItem } from "@/lib/edorSession";
 import { Music, Play, ArrowLeft, Clock, MapPin } from "lucide-react";
 import { useMemo } from "react";
 import { useLocation, Link } from "wouter";
@@ -11,7 +10,6 @@ import { format } from "date-fns";
 export default function LibraryPage() {
   const [, setLocation] = useLocation();
   const session = useMemo(() => loadSession(), []);
-  const data = useMemo(() => loadEdorData(), []);
 
   const libraryItems = useMemo(() => {
     return session.library || [];
@@ -20,7 +18,7 @@ export default function LibraryPage() {
   return (
     <Shell
       title="Library"
-      left={
+      right={
         <Link href="/">
           <Button variant="ghost" size="icon" className="rounded-full text-white/60">
             <ArrowLeft className="h-5 w-5" />
@@ -38,7 +36,7 @@ export default function LibraryPage() {
 
         {libraryItems.length > 0 ? (
           <div className="grid gap-3">
-            {libraryItems.map((item) => (
+            {libraryItems.map((item: UnlockedItem) => (
               <Card 
                 key={item.id} 
                 className="edor-noise glass border-white/10 rounded-3xl p-4 flex items-center gap-4 group active:scale-[0.98] transition-transform"
@@ -62,6 +60,11 @@ export default function LibraryPage() {
                       <Clock className="h-3 w-3" />
                       {format(new Date(item.unlockedAt), 'MMM d')}
                     </span>
+                    {item.unlockCount > 1 && (
+                      <span className="text-primary/60">
+                        x{item.unlockCount}
+                      </span>
+                    )}
                   </div>
                 </div>
 
