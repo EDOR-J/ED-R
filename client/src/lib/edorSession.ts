@@ -22,6 +22,19 @@ export type ListeningRoom = {
   lastEvent?: RoomEvent;
 };
 
+export type UnlockedItem = {
+  id: string;
+  contentId: string;
+  title: string;
+  artist: string;
+  mode: PulseMode;
+  nodeId: string;
+  locationName: string;
+  unlockedAt: string;
+  audioUrl: string;
+  artworkUrl: string;
+};
+
 export type PulseSession = {
   mode: PulseMode;
   lastLocationId?: string;
@@ -29,6 +42,7 @@ export type PulseSession = {
   lastContentId?: string;
   unlockedSessions: UnlockedSession[];
   activeRoom?: ListeningRoom;
+  library: UnlockedItem[];
 };
 
 const KEY = "edor:pulse:session:v1";
@@ -38,6 +52,7 @@ export function loadSession(): PulseSession {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const s = JSON.parse(raw) as PulseSession;
+      if (!s.library) s.library = [];
       // Handle room expiration
       if (s.activeRoom && new Date(s.activeRoom.expiresAt) < new Date()) {
         delete s.activeRoom;
@@ -48,9 +63,25 @@ export function loadSession(): PulseSession {
   } catch {
     // ignore
   }
-  const init: PulseSession = { mode: "discover", unlockedSessions: [] };
+  const init: PulseSession = { mode: "discover", unlockedSessions: [], library: [] };
   saveSession(init);
   return init;
+}
+
+export function addToLibrary(item: Omit<UnlockedItem, "id">) {
+  const s = loadSession();
+  const newItem: UnlockedItem = {
+    ...item,
+    id: Math.random().toString(36).slice(2)
+  };
+  
+  // Prevent duplicates
+  const exists = s.library.some(i => i.contentId === item.contentId && i.nodeId === item.nodeId);
+  if (exists) return;
+
+  const next = { ...s, library: [newItem, ...s.library] };
+  saveSession(next);
+  return newItem;
 }
 
 export function updateRoomEvent(event: RoomEvent) {

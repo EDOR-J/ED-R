@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { loadEdorData, getNearestLocation, pickContentForLocationMode, type PulseLocation } from "@/lib/edorStore";
-import { loadSession, setSelectedLocation, addUnlockedSession } from "@/lib/edorSession";
+import { loadSession, setSelectedLocation, addUnlockedSession, addToLibrary } from "@/lib/edorSession";
 import { MapPin, ShieldAlert, X } from "lucide-react";
 import { Map, Marker, Overlay } from "pigeon-maps";
 import { motion, AnimatePresence } from "framer-motion";
@@ -86,6 +86,20 @@ export default function PulsePage() {
     }
 
     addUnlockedSession(locationId, picked.content.id, session.mode);
+    
+    // Auto-save to Library
+    addToLibrary({
+      contentId: picked.content.id,
+      title: picked.content.title,
+      artist: picked.content.creator,
+      mode: session.mode,
+      nodeId: locationId,
+      locationName: location?.name || "Unknown Location",
+      unlockedAt: new Date().toISOString(),
+      audioUrl: picked.content.audioUrl,
+      artworkUrl: "" // placeholder
+    });
+
     setLocation(`/content/${picked.content.id}?loc=${locationId}&mode=${session.mode}`);
   }
 

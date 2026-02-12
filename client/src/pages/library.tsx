@@ -14,16 +14,8 @@ export default function LibraryPage() {
   const data = useMemo(() => loadEdorData(), []);
 
   const libraryItems = useMemo(() => {
-    return [...session.unlockedSessions]
-      .reverse()
-      .map((s) => {
-        const content = data.contents.find((c) => c.id === s.contentId);
-        const location = data.locations.find((l) => l.id === s.nodeId);
-        if (!content || !location) return null;
-        return { session: s, content, location };
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
-  }, [session.unlockedSessions, data]);
+    return session.library || [];
+  }, [session.library]);
 
   return (
     <Shell
@@ -46,11 +38,11 @@ export default function LibraryPage() {
 
         {libraryItems.length > 0 ? (
           <div className="grid gap-3">
-            {libraryItems.map(({ session: s, content, location }) => (
+            {libraryItems.map((item) => (
               <Card 
-                key={s.id} 
+                key={item.id} 
                 className="edor-noise glass border-white/10 rounded-3xl p-4 flex items-center gap-4 group active:scale-[0.98] transition-transform"
-                onClick={() => setLocation(`/content/${content.id}?loc=${location.id}`)}
+                onClick={() => setLocation(`/content/${item.contentId}?loc=${item.nodeId}`)}
               >
                 <div className="h-16 w-16 rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center shrink-0 overflow-hidden relative">
                   <Music className="h-6 w-6 text-white/20" />
@@ -58,17 +50,17 @@ export default function LibraryPage() {
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-bold text-white truncate">{content.title}</h3>
-                  <p className="text-xs text-white/60 truncate">{content.creator}</p>
+                  <h3 className="text-sm font-bold text-white truncate">{item.title}</h3>
+                  <p className="text-xs text-white/60 truncate">{item.artist}</p>
                   
                   <div className="mt-2 flex items-center gap-3 text-[10px] text-white/40 font-bold uppercase tracking-wider">
                     <span className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
-                      {location.name}
+                      {item.locationName}
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {format(new Date(s.timestamp), 'MMM d')}
+                      {format(new Date(item.unlockedAt), 'MMM d')}
                     </span>
                   </div>
                 </div>
