@@ -5,7 +5,7 @@ export type UnlockedSession = {
   nodeId: string;
   contentId: string;
   mode: PulseMode;
-  timestamp: string;
+  unlockedAt: string;
 };
 
 export type RoomEvent = 
@@ -59,6 +59,7 @@ export function loadSession(): PulseSession {
     if (raw) {
       const s = JSON.parse(raw) as PulseSession;
       if (!s.library) s.library = [];
+      if (!s.unlockedSessions) s.unlockedSessions = [];
       // Handle room expiration
       if (s.activeRoom && new Date(s.activeRoom.expiresAt) < new Date()) {
         delete s.activeRoom;
@@ -147,7 +148,7 @@ export function addUnlockedSession(nodeId: string, contentId: string, mode: Puls
     nodeId,
     contentId,
     mode,
-    timestamp: new Date().toISOString()
+    unlockedAt: new Date().toISOString()
   };
   const next = { 
     ...s, 
@@ -161,6 +162,7 @@ export function addUnlockedSession(nodeId: string, contentId: string, mode: Puls
 
 export function getLatestSession() {
   const s = loadSession();
+  if (!s.unlockedSessions || s.unlockedSessions.length === 0) return null;
   return s.unlockedSessions[s.unlockedSessions.length - 1];
 }
 
