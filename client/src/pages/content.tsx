@@ -151,11 +151,11 @@ export default function ContentPage() {
         <div className="mt-5 grid gap-2">
           <audio ref={audioRef} src={content.audioUrl} preload="none" />
 
-          {canStartCircle ? (
+          {location?.isPermanent ? (
             <Card className="bg-primary/5 border-primary/20 rounded-2xl p-4 mb-2">
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-xs font-bold text-primary uppercase tracking-wider">Listening Circle Available</span>
+                <span className="text-xs font-bold text-primary uppercase tracking-wider">Listening Circle Available Here</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <Button 
@@ -163,6 +163,7 @@ export default function ContentPage() {
                   size="sm" 
                   className="rounded-xl border-primary/20 text-xs font-bold h-9"
                   onClick={handleStartCircle}
+                  disabled={!isLatestForThisContent}
                 >
                   Start Circle
                 </Button>
@@ -171,17 +172,17 @@ export default function ContentPage() {
                   size="sm" 
                   className="rounded-xl border-primary/20 text-xs font-bold h-9"
                   onClick={handleJoinCircle}
+                  disabled={!isLatestForThisContent}
                 >
                   Join Circle
                 </Button>
               </div>
+              {!isLatestForThisContent && (
+                <p className="mt-2 text-[10px] text-white/30 uppercase font-bold tracking-widest text-center">
+                  Must Pulse to join
+                </p>
+              )}
             </Card>
-          ) : location?.isPermanent ? (
-            <div className="px-1 mb-2">
-              <p className="text-[10px] text-white/30 uppercase font-bold tracking-widest">
-                Circle unavailable (Must Pulse to join)
-              </p>
-            </div>
           ) : (
             <div className="px-1 mb-2">
               <p className="text-[10px] text-white/30 uppercase font-bold tracking-widest">
