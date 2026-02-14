@@ -121,8 +121,11 @@ export function startRoom(nodeId: string, contentId: string) {
   const expiresAt = new Date();
   expiresAt.setMinutes(expiresAt.getMinutes() + 60);
   
+  // timeWindow is the current hour bucket
+  const timeWindow = Math.floor(Date.now() / (60 * 60 * 1000));
+  
   const room: ListeningRoom = {
-    id: `${nodeId}-${contentId}-${Math.floor(Date.now() / (60 * 60 * 1000))}`,
+    id: `${nodeId}-${contentId}-${timeWindow}`,
     nodeId,
     contentId,
     expiresAt: expiresAt.toISOString(),

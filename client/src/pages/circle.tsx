@@ -1,7 +1,7 @@
 import Shell from "@/components/edor/shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { endRoom, loadSession } from "@/lib/edorSession";
+import { endRoom, loadSession, addToLibrary } from "@/lib/edorSession";
 import { loadEdorData } from "@/lib/edorStore";
 import { MessageSquare, Users, X, Clock, QrCode, Play, Pause, Disc } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -86,9 +86,24 @@ export default function CircleRoom() {
   }
 
   function handleEnd() {
+    // Save a "stamp" to the library item if it exists
+    if (content && room) {
+      addToLibrary({
+        contentId: content.id,
+        title: content.title,
+        artist: content.creator,
+        mode: "discover", // Defaulting to discover for room stamps
+        nodeId: room.nodeId,
+        locationName: location?.name || "Unknown",
+        unlockedAt: new Date().toISOString(),
+        audioUrl: content.audioUrl,
+        artworkUrl: "",
+      });
+    }
+    
     endRoom();
     if (content) {
-      setLocation(`/content/${content.id}?loc=${location?.id}`);
+      setLocation(`/content/${content.id}?loc=${location?.id}&roomEnd=1`);
     } else {
       setLocation("/");
     }
