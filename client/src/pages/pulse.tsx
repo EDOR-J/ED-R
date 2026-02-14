@@ -26,6 +26,67 @@ export default function PulsePage() {
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
   const [activeLocation, setActiveLocation] = useState<PulseLocation | null>(null);
 
+  const queryParams = new URLSearchParams(window.location.search);
+  const joinRoomId = queryParams.get("join");
+  const joinLocId = queryParams.get("loc");
+
+  useEffect(() => {
+    if (joinRoomId && joinLocId && userCoords) {
+      const location = data.locations.find(l => l.id === joinLocId);
+      if (!location) {
+        toast.error("Invalid Listening Circle");
+        return;
+      }
+
+      if (!location.isPermanent) {
+        toast.error("Circles only available at permanent nodes");
+        return;
+      }
+
+      // 100m geofence check
+      const lat1 = userCoords[0];
+      const lon1 = userCoords[1];
+      const lat2 = location.lat;
+      const lon2 = location.lng;
+      
+      const R = 6371; // km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distanceKm = R * c;
+
+      if (distanceKm > 0.1) {
+        toast.error(`Too far! Must be at ${location.name} to join.`);
+        return;
+      }
+
+      // Join logic
+      const [nodeId, contentId] = joinRoomId.split('-');
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 60);
+      
+      const s = loadSession();
+      const room = {
+        id: joinRoomId,
+        nodeId,
+        contentId,
+        expiresAt: expiresAt.toISOString(),
+        hostId: "other"
+      };
+      
+      const next = { ...s, activeRoom: room };
+      // Import missing type or use any for mockup
+      (next as any).activeRoom = room;
+      localStorage.setItem("edor:pulse:session:v1", JSON.stringify(next));
+      
+      toast.success(`Joined Circle at ${location.name}`);
+      setLocation("/circle");
+    }
+  }, [joinRoomId, joinLocId, userCoords, data.locations, setLocation]);
+
   useEffect(() => {
     let cancelled = false;
 
