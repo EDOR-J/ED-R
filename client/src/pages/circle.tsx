@@ -43,6 +43,22 @@ export default function CircleRoom() {
       setTimeLeft(`${mins}:${secs.toString().padStart(2, '0')}`);
     }, 1000);
 
+    return () => clearInterval(timer);
+  }, [room]);
+
+  // Sync effect for all participants
+  useEffect(() => {
+    if (!room || !audioRef.current) return;
+
+    // Host sends sync events periodically
+    const hostInterval = setInterval(() => {
+      if (isHost && audioRef.current) {
+        const type = audioRef.current.paused ? 'PAUSE' : 'PLAY';
+        const at = audioRef.current.currentTime;
+        updateRoomEvent({ type, at, timestamp: Date.now() });
+      }
+    }, 1000);
+
     // Participant sync logic
     const syncInterval = setInterval(() => {
       if (!isHost && room.lastEvent && audioRef.current) {
@@ -52,14 +68,18 @@ export default function CircleRoom() {
         const targetTime = event.at + (event.type === 'PLAY' ? latency : 0);
 
         if (event.type === 'PLAY') {
-          if (audioRef.current.paused) audioRef.current.play();
-          if (Math.abs(audioRef.current.currentTime - targetTime) > 1.5) {
+          if (audioRef.current.paused) audioRef.current.play().catch(() => {});
+          const diff = Math.abs(audioRef.current.currentTime - targetTime);
+          if (diff > 1.2) {
             audioRef.current.currentTime = targetTime;
           }
           setIsPlaying(true);
         } else {
           if (!audioRef.current.paused) audioRef.current.pause();
-          audioRef.current.currentTime = event.at;
+          const diff = Math.abs(audioRef.current.currentTime - event.at);
+          if (diff > 0.5) {
+            audioRef.current.currentTime = event.at;
+          }
           setIsPlaying(false);
         }
         setIsSynced(true);
@@ -67,7 +87,7 @@ export default function CircleRoom() {
     }, 2000);
 
     return () => {
-      clearInterval(timer);
+      clearInterval(hostInterval);
       clearInterval(syncInterval);
     };
   }, [room, isHost]);
@@ -80,7 +100,7 @@ export default function CircleRoom() {
     const event: RoomEvent = { type, at, timestamp: Date.now() };
     
     updateRoomEvent(event);
-    if (type === 'PLAY') audioRef.current.play();
+    if (type === 'PLAY') audioRef.current.play().catch(() => {});
     else audioRef.current.pause();
     setIsPlaying(!isPlaying);
   }
