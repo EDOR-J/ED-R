@@ -240,10 +240,50 @@ export default function CircleRoom() {
             </DialogContent>
           </Dialog>
 
-          <Button className="flex-1 h-14 rounded-2xl gap-2 font-bold text-sm bg-white text-black hover:bg-white/90">
-            <MessageSquare className="h-4 w-4" />
-            Join Chat
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="flex-1 h-14 rounded-2xl gap-2 font-bold text-sm bg-white text-black hover:bg-white/90">
+                <MessageSquare className="h-4 w-4" />
+                Join Chat
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-[#0A0A0A] border-white/10 text-white max-h-[80vh] flex flex-col p-0 overflow-hidden">
+              <DialogHeader className="p-4 border-b border-white/10">
+                <DialogTitle className="text-center font-bold">Circle Chat</DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-[300px]">
+                <div className="flex flex-col gap-1 items-start max-w-[80%]">
+                  <span className="text-[10px] text-white/40 font-bold uppercase ml-1">EDØR Bot</span>
+                  <div className="bg-white/5 border border-white/10 rounded-2xl rounded-tl-none p-3 text-sm text-white/80">
+                    Welcome to the Circle. Connect with those around you.
+                  </div>
+                </div>
+                {/* Mock messages could go here */}
+              </div>
+              
+              <div className="p-4 border-t border-white/10 bg-black/50 flex flex-col gap-4">
+                <div className="flex justify-between px-2">
+                  {["🫀", "🔥", "😮‍💨", "✨", "🤯"].map(emoji => (
+                    <button key={emoji} className="text-2xl hover:scale-125 transition-transform active:scale-95">
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  {["whos new?", "love this.", "Where are y’all from?", "Drop your IG?"].map(msg => (
+                    <Button 
+                      key={msg} 
+                      variant="outline" 
+                      className="text-[10px] h-8 rounded-full border-white/10 text-white/60 font-bold uppercase tracking-wider"
+                    >
+                      {msg}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Button 
             variant="outline" 
             className="h-14 rounded-2xl border-white/10 text-white/60 hover:text-white"
