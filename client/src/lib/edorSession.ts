@@ -45,6 +45,16 @@ export type PulseSession = {
   unlockedSessions: UnlockedSession[];
   activeRoom?: ListeningRoom;
   library: UnlockedItem[];
+  blockedUserIds: string[];
+  reports: Array<{
+    id: string;
+    roomId: string;
+    nodeId: string;
+    timestamp: string;
+    reporterId: string;
+    reportedId: string;
+    reason: string;
+  }>;
 };
 
 const KEY = "edor:pulse:session:v1";
@@ -70,7 +80,7 @@ export function loadSession(): PulseSession {
   } catch {
     // ignore
   }
-  const init: PulseSession = { mode: "discover", unlockedSessions: [], library: [] };
+  const init: PulseSession = { mode: "discover", unlockedSessions: [], library: [], blockedUserIds: [], reports: [] };
   saveSession(init);
   return init;
 }
@@ -188,4 +198,24 @@ export function setLastContentId(contentId: string | undefined) {
   const next = { ...s, lastContentId: contentId };
   saveSession(next);
   return next;
+}
+
+export function blockUser(userId: string) {
+  const s = loadSession();
+  if (!s.blockedUserIds.includes(userId)) {
+    s.blockedUserIds.push(userId);
+    saveSession(s);
+  }
+}
+
+export function reportUser(report: { roomId: string; nodeId: string; reportedId: string; reason: string }) {
+  const s = loadSession();
+  const newReport = {
+    ...report,
+    id: Math.random().toString(36).slice(2),
+    timestamp: new Date().toISOString(),
+    reporterId: "me"
+  };
+  s.reports.push(newReport);
+  saveSession(s);
 }

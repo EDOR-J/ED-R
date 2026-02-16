@@ -8,7 +8,15 @@ import { QRCodeSVG } from "qrcode.react";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { updateRoomEvent, type RoomEvent } from "@/lib/edorSession";
+import { toast } from "sonner";
+import { updateRoomEvent, type RoomEvent, blockUser, reportUser } from "@/lib/edorSession";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, ShieldAlert, Ban } from "lucide-react";
 
 export default function CircleRoom() {
   const [, setLocation] = useLocation();
@@ -252,13 +260,46 @@ export default function CircleRoom() {
                 <DialogTitle className="text-center font-bold">Circle Chat</DialogTitle>
               </DialogHeader>
               <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-[300px]">
-                <div className="flex flex-col gap-1 items-start max-w-[80%]">
-                  <span className="text-[10px] text-white/40 font-bold uppercase ml-1">EDØR Bot</span>
+                <div className="flex flex-col gap-1 items-start max-w-[80%] group">
+                  <div className="flex items-center gap-2 w-full">
+                    <span className="text-[10px] text-white/40 font-bold uppercase ml-1">Member_82</span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1">
+                          <MoreHorizontal className="h-3 w-3 text-white/40" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="bg-[#0A0A0A] border-white/10 text-white">
+                        <DropdownMenuItem 
+                          className="gap-2 text-xs focus:bg-white/5"
+                          onClick={() => {
+                            blockUser("Member_82");
+                            toast.success("User blocked");
+                          }}
+                        >
+                          <Ban className="h-3 w-3" /> Block
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="gap-2 text-xs text-red-400 focus:bg-red-400/10 focus:text-red-400"
+                          onClick={() => {
+                            reportUser({ 
+                              roomId: room.id, 
+                              nodeId: room.nodeId, 
+                              reportedId: "Member_82", 
+                              reason: "Inappropriate behavior" 
+                            });
+                            toast.success("Report submitted");
+                          }}
+                        >
+                          <ShieldAlert className="h-3 w-3" /> Report
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                   <div className="bg-white/5 border border-white/10 rounded-2xl rounded-tl-none p-3 text-sm text-white/80">
                     Welcome to the Circle. Connect with those around you.
                   </div>
                 </div>
-                {/* Mock messages could go here */}
               </div>
               
               <div className="p-4 border-t border-white/10 bg-black/50 flex flex-col gap-4">
