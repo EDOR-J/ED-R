@@ -22,6 +22,14 @@ export type ListeningRoom = {
   lastEvent?: RoomEvent;
 };
 
+export type Synapse = {
+  id: string;
+  locationName: string;
+  endedAt: string;
+  participantsCount: number;
+  reactions: Record<string, number>;
+};
+
 export type UnlockedItem = {
   id: string;
   contentId: string;
@@ -35,6 +43,7 @@ export type UnlockedItem = {
   unlockCount: number;
   audioUrl: string;
   artworkUrl: string;
+  synapses?: Synapse[];
 };
 
 export type PulseSession = {

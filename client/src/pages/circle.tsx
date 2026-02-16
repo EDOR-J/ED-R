@@ -114,19 +114,40 @@ export default function CircleRoom() {
   }
 
   function handleEnd() {
-    // Save a "stamp" to the library item if it exists
+    // Save a "synapse" associated with the content
     if (content && room) {
-      addToLibrary({
-        contentId: content.id,
-        title: content.title,
-        artist: content.creator,
-        mode: "discover", // Defaulting to discover for room stamps
-        nodeId: room.nodeId,
+      const synapse = {
+        id: Math.random().toString(36).slice(2),
         locationName: location?.name || "Unknown",
-        unlockedAt: new Date().toISOString(),
-        audioUrl: content.audioUrl,
-        artworkUrl: "",
-      });
+        endedAt: new Date().toISOString(),
+        participantsCount: 15, // Mock data
+        reactions: { "🫀": 12, "🔥": 8, "✨": 5 } // Mock data
+      };
+
+      const s = loadSession();
+      const existingIndex = s.library.findIndex(i => i.contentId === content.id);
+      
+      if (existingIndex > -1) {
+        const item = s.library[existingIndex];
+        if (!item.synapses) item.synapses = [];
+        item.synapses.push(synapse);
+        s.library[existingIndex] = { ...item };
+        localStorage.setItem("edor:pulse:session:v1", JSON.stringify(s));
+      } else {
+        // Just in case it wasn't in library, though it should be after Pulse
+        addToLibrary({
+          contentId: content.id,
+          title: content.title,
+          artist: content.creator,
+          mode: "discover",
+          nodeId: room.nodeId,
+          locationName: location?.name || "Unknown",
+          unlockedAt: new Date().toISOString(),
+          audioUrl: content.audioUrl,
+          artworkUrl: "",
+        });
+        // We'd recurse or just skip synapse for simplicity in mockup
+      }
     }
     
     endRoom();
