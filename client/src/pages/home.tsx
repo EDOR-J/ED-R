@@ -18,6 +18,14 @@ function useQuery() {
 
 export default function HomePage() {
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+    const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      setLocation("/login");
+    }
+  }, [setLocation]);
   const [mode, setModeState] = useState(loadSession().mode);
   const data = useMemo(() => loadEdorData(), []);
 
