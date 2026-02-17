@@ -11,9 +11,12 @@ import AdminPage from "./pages/admin";
 import CircleRoom from "./pages/circle";
 import LibraryPage from "./pages/library";
 
+import LoginPage from "./pages/auth/login";
+
 function Router() {
   return (
     <Switch>
+      <Route path="/login" component={LoginPage} />
       <Route path="/" component={HomePage} />
       <Route path="/pulse" component={PulsePage} />
       <Route path="/content/:contentId" component={ContentPage} />

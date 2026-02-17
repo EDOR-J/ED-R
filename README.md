@@ -1,0 +1,17 @@
+# EDØR - Place-Based Music & Culture
+
+## Setup Instructions
+
+This is a Rapid Prototype mockup. To transition to a full-stack application with real persistence, the following environment variables are required:
+
+### Required Environment Variables
+
+- `SUPABASE_URL`: Your Supabase project URL (found in Project Settings -> API)
+- `SUPABASE_ANON_KEY`: Your Supabase anonymous API key (found in Project Settings -> API)
+
+### How to add them:
+1. Open the **Secrets** tab in Replit.
+2. Add a new secret with the key `SUPABASE_URL` and your URL as the value.
+3. Add a new secret with the key `SUPABASE_ANON_KEY` and your key as the value.
+
+*Note: In the current mockup mode, missing variables will trigger a helpful error screen which can be bypassed for demonstration purposes.*
