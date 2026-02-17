@@ -15,3 +15,13 @@ This is a Rapid Prototype mockup. To transition to a full-stack application with
 3. Add a new secret with the key `SUPABASE_ANON_KEY` and your key as the value.
 
 *Note: In the current mockup mode, missing variables will trigger a helpful error screen which can be bypassed for demonstration purposes.*
+
+## Supabase OAuth Configuration (Google)
+
+To enable "Continue with Google":
+
+1. Go to Authentication -> Providers -> Google in your Supabase dashboard.
+2. Enable Google provider.
+3. Configure the **Redirect URL** in Supabase to match your Replit deployment:
+   - For local development/preview: `https://<your-replit-url>/auth/callback` (or simply the root URL if handling client-side)
+   - Note: You must add the specific Replit domain (e.g., `https://edor-prototype.<username>.repl.co`) to the "Redirect URLs" whitelist in Authentication -> URL Configuration.
