@@ -4,12 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ShieldAlert, Lock, Zap } from "lucide-react";
+import { ShieldAlert, Lock, Zap, Smartphone, KeyRound } from "lucide-react";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
+  const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
+  
+  // Email state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  
+  // Phone state
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   const [envError, setEnvError] = useState<string | null>(null);
 
   // Mock runtime check for environment variables
@@ -23,7 +33,7 @@ export default function LoginPage() {
     }
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleEmailLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (envError) {
       toast.error("Connection failed: Server configuration error");
@@ -32,6 +42,36 @@ export default function LoginPage() {
     // Mock login success
     toast.success("Welcome back to EDØR");
     setLocation("/");
+  };
+
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (envError) {
+      toast.error("Connection failed: Server configuration error");
+      return;
+    }
+
+    setIsLoading(true);
+    
+    if (!otpSent) {
+      // Send OTP
+      setTimeout(() => {
+        setIsLoading(false);
+        setOtpSent(true);
+        toast.success("Code sent to " + phone);
+      }, 1000);
+    } else {
+      // Verify OTP
+      setTimeout(() => {
+        setIsLoading(false);
+        if (otp === "123456") {
+          toast.success("Welcome back to EDØR");
+          setLocation("/");
+        } else {
+          toast.error("Invalid verification code");
+        }
+      }, 1000);
+    }
   };
 
   if (envError) {
@@ -78,47 +118,126 @@ export default function LoginPage() {
         </div>
 
         <Card className="edor-noise glass border-white/10 p-8 rounded-3xl">
-          <form onSubmit={handleLogin} className="flex flex-col gap-6">
-            <div className="flex flex-col gap-2">
-              <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest ml-1">Identity</p>
-              <div className="relative">
-                <Input
-                  type="email"
-                  placeholder="Email"
-                  className="bg-white/5 border-white/10 rounded-2xl h-12 pl-4 text-white focus:border-primary/50"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest ml-1">Passcode</p>
-              <div className="relative">
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  className="bg-white/5 border-white/10 rounded-2xl h-12 pl-4 text-white focus:border-primary/50"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
-              </div>
-            </div>
-
-            <Button 
-              type="submit" 
-              className="w-full h-14 rounded-2xl text-base font-bold tracking-wide mt-2 relative overflow-hidden group"
+          <div className="flex bg-white/5 p-1 rounded-xl mb-6">
+            <button
+              className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${authMethod === 'email' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+              onClick={() => setAuthMethod('email')}
             >
-              <span className="relative z-10 flex items-center gap-2">
-                <Zap className="h-4 w-4" />
-                Initialize Pulse
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary-foreground opacity-0 group-hover:opacity-10 transition-opacity" />
-            </Button>
-          </form>
+              Email
+            </button>
+            <button
+              className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${authMethod === 'phone' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+              onClick={() => setAuthMethod('phone')}
+            >
+              Phone
+            </button>
+          </div>
+
+          {authMethod === 'email' ? (
+            <form onSubmit={handleEmailLogin} className="flex flex-col gap-6">
+              <div className="flex flex-col gap-2">
+                <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest ml-1">Identity</p>
+                <div className="relative">
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    className="bg-white/5 border-white/10 rounded-2xl h-12 pl-4 text-white focus:border-primary/50"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest ml-1">Passcode</p>
+                <div className="relative">
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    className="bg-white/5 border-white/10 rounded-2xl h-12 pl-4 text-white focus:border-primary/50"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+                </div>
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full h-14 rounded-2xl text-base font-bold tracking-wide mt-2 relative overflow-hidden group"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  Initialize Pulse
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary-foreground opacity-0 group-hover:opacity-10 transition-opacity" />
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handlePhoneSubmit} className="flex flex-col gap-6">
+              {!otpSent ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest ml-1">Mobile Number</p>
+                  <div className="relative">
+                    <Input
+                      type="tel"
+                      placeholder="+1 (555) 000-0000"
+                      className="bg-white/5 border-white/10 rounded-2xl h-12 pl-4 text-white focus:border-primary/50"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                    />
+                    <Smartphone className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest ml-1">Verification Code</p>
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="000000"
+                      className="bg-white/5 border-white/10 rounded-2xl h-12 pl-4 text-white focus:border-primary/50 text-center tracking-[0.5em] text-lg font-mono"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      maxLength={6}
+                      required
+                      autoFocus
+                    />
+                    <KeyRound className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+                  </div>
+                  <button 
+                    type="button"
+                    className="text-[10px] text-white/40 hover:text-white text-right mt-1"
+                    onClick={() => {
+                      setOtpSent(false);
+                      setOtp("");
+                    }}
+                  >
+                    Change Number
+                  </button>
+                </div>
+              )}
+
+              <Button 
+                type="submit" 
+                className="w-full h-14 rounded-2xl text-base font-bold tracking-wide mt-2 relative overflow-hidden group"
+                disabled={isLoading}
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  {isLoading ? (
+                    <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Zap className="h-4 w-4" />
+                  )}
+                  {otpSent ? "Verify Code" : "Send Code"}
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary-foreground opacity-0 group-hover:opacity-10 transition-opacity" />
+              </Button>
+            </form>
+          )}
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
