@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -121,12 +121,12 @@ export default function LoginPage() {
           </form>
           
           <div className="mt-8 flex flex-col gap-4 text-center">
-            <button className="text-[10px] text-white/30 hover:text-white/60 transition-colors uppercase font-bold tracking-widest">
+            <Link href="/forgot-password" className="text-[10px] text-white/30 hover:text-white/60 transition-colors uppercase font-bold tracking-widest">
               Forgot Credentials?
-            </button>
+            </Link>
             <div className="h-px bg-white/5 w-full" />
             <p className="text-[10px] text-white/30 uppercase font-bold tracking-widest">
-              Don't have access? <span className="text-primary">Contact Admin</span>
+              Don't have access? <Link href="/signup" className="text-primary">Create ID</Link>
             </p>
           </div>
         </Card>
