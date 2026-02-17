@@ -39,7 +39,7 @@ export default function PulsePage() {
       }
 
       if (!location.isPermanent) {
-        toast.error("Circles only available at permanent nodes");
+        toast.error("Circles are only available at permanent Pulse locations.");
         return;
       }
 
@@ -59,7 +59,7 @@ export default function PulsePage() {
       const distanceKm = R * c;
 
       if (distanceKm > 0.1) {
-        toast.error(`Too far! Must be at ${location.name} to join.`);
+        toast.error("Circles are only available at permanent Pulse locations.");
         return;
       }
 
