@@ -102,6 +102,24 @@ export default function SignupPage() {
             </svg>
             <span className="text-white/80 font-medium">Google</span>
           </Button>
+
+          <Button 
+            variant="outline" 
+            className="w-full h-14 rounded-2xl border-white/10 hover:bg-white/5 hover:text-white relative overflow-hidden group mt-3"
+            onClick={() => {
+              // Mock Apple Signup
+              toast.success("Authenticating with Apple...");
+              setTimeout(() => {
+                toast.success("Account created successfully");
+                setLocation("/");
+              }, 1500);
+            }}
+          >
+            <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-.36-.16-.7-.31-1.12-.31-.44 0-.79.15-1.2.32-.87.4-1.83.56-2.87-.2-2.22-1.63-3.69-5.17-1.54-7.94.88-1.13 2.16-1.74 3.42-1.74 1 0 1.83.65 2.53.65s2.22-.68 3.52-.61c.6.02 1.77.25 2.65 1.19-2.31 1.25-1.92 4.49.52 5.51-.43 1.15-1.07 2.22-1.83 3.03l-.47.63v.07zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+            </svg>
+            <span className="text-white/80 font-medium">Apple</span>
+          </Button>
           
           <div className="mt-8 text-center">
             <p className="text-[10px] text-white/30 uppercase font-bold tracking-widest">
