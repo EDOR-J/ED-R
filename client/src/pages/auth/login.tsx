@@ -24,13 +24,8 @@ export default function LoginPage() {
 
   // Mock runtime check for environment variables
   useEffect(() => {
-    // In a real app, these would come from process.env or import.meta.env
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-    const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      setEnvError("Missing required environment variables: SUPABASE_URL, SUPABASE_ANON_KEY");
-    }
+    // Disabled for mockup mode
+    setEnvError(null);
   }, []);
 
   const handleEmailLogin = (e: React.FormEvent) => {
