@@ -16,6 +16,48 @@ function useQuery() {
   return useMemo(() => new URLSearchParams(loc.split("?")[1] ?? ""), [loc]);
 }
 
+import { AnimatePresence, motion } from "framer-motion";
+
+function SparkleParticle({ id, onComplete }: { id: number; onComplete: (id: number) => void }) {
+  // Random start position around the center
+  const angle = Math.random() * 360;
+  const distance = 20 + Math.random() * 20; // Start slightly outside center
+  
+  // Random movement vector
+  const moveDistance = 60 + Math.random() * 50;
+  const duration = 0.5 + Math.random() * 0.5;
+  
+  return (
+    <motion.div
+      initial={{ 
+        opacity: 0, 
+        scale: 0,
+        x: "50%", 
+        y: "50%",
+        rotate: Math.random() * 360
+      }}
+      animate={{ 
+        opacity: [0, 1, 0],
+        scale: [0.5, 1.2, 0],
+        x: `calc(50% + ${Math.cos(angle * (Math.PI / 180)) * moveDistance}px)`,
+        y: `calc(50% + ${Math.sin(angle * (Math.PI / 180)) * moveDistance}px)`,
+        rotate: Math.random() * 360 + 180
+      }}
+      transition={{ duration, ease: "easeOut" }}
+      onAnimationComplete={() => onComplete(id)}
+      className="absolute top-0 left-0 w-3 h-3 pointer-events-none z-10"
+      style={{
+        top: "50%",
+        left: "50%",
+        marginTop: -6,
+        marginLeft: -6
+      }}
+    >
+      <Sparkles className="w-full h-full text-amber-200 fill-amber-100/50" />
+    </motion.div>
+  );
+}
+
 export default function HomePage() {
   const [, setLocation] = useLocation();
 
@@ -37,22 +79,49 @@ export default function HomePage() {
 
   // Pulse button interaction
   const [sparkleDuration, setSparkleDuration] = useState(2.5);
-  const holdInterval = useState<NodeJS.Timeout | null>(null)[0];
+  const [isHolding, setIsHolding] = useState(false);
+  const [particles, setParticles] = useState<number[]>([]);
+  
   // We use a ref for the interval to clear it easily
   const intervalRef = useState<{ current: NodeJS.Timeout | null }>({ current: null })[0];
+  const particleIntervalRef = useState<{ current: NodeJS.Timeout | null }>({ current: null })[0];
+
+  const addParticle = () => {
+    setParticles(prev => [...prev, Date.now() + Math.random()]);
+  };
+
+  const removeParticle = (id: number) => {
+    setParticles(prev => prev.filter(p => p !== id));
+  };
 
   const startHold = () => {
+    setIsHolding(true);
     if (intervalRef.current) clearInterval(intervalRef.current);
+    if (particleIntervalRef.current) clearInterval(particleIntervalRef.current);
     
+    // Speed up shimmer
     intervalRef.current = setInterval(() => {
       setSparkleDuration((prev) => Math.max(0.2, prev * 0.9)); // Accelerate
+    }, 100);
+
+    // Spawn particles
+    addParticle(); // Immediate spawn
+    particleIntervalRef.current = setInterval(() => {
+      addParticle();
+      // Sometimes add two
+      if (Math.random() > 0.5) setTimeout(addParticle, 50);
     }, 100);
   };
 
   const endHold = () => {
+    setIsHolding(false);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+    }
+    if (particleIntervalRef.current) {
+      clearInterval(particleIntervalRef.current);
+      particleIntervalRef.current = null;
     }
     setSparkleDuration(2.5); // Reset
   };
@@ -60,6 +129,7 @@ export default function HomePage() {
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      if (particleIntervalRef.current) clearInterval(particleIntervalRef.current);
     };
   }, []);
 
@@ -171,10 +241,15 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="mt-5">
+        <div className="mt-5 relative">
+          <AnimatePresence>
+            {particles.map(id => (
+              <SparkleParticle key={id} id={id} onComplete={removeParticle} />
+            ))}
+          </AnimatePresence>
           <Button
             size="lg"
-            className="w-full rounded-2xl h-14 text-base font-semibold tracking-wide animate-sparkle transition-all duration-300 active:scale-[0.98]"
+            className="w-full rounded-2xl h-14 text-base font-semibold tracking-wide animate-sparkle transition-all duration-300 active:scale-[0.98] relative z-20"
             onClick={() => setLocation("/pulse")}
             onMouseDown={startHold}
             onMouseUp={endHold}
