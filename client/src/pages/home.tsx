@@ -146,7 +146,7 @@ export default function HomePage() {
         <div className="mt-5">
           <Button
             size="lg"
-            className="w-full rounded-2xl h-14 text-base font-semibold tracking-wide"
+            className="w-full rounded-2xl h-14 text-base font-semibold tracking-wide animate-sparkle"
             onClick={() => setLocation("/pulse")}
             data-testid="button-pulse"
           >

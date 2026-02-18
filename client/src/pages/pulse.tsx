@@ -218,7 +218,7 @@ export default function PulsePage() {
                 <p className="text-xs text-white/60 mt-1">{activeLocation.description}</p>
                 <Button 
                   size="sm" 
-                  className="w-full mt-3 h-9 rounded-xl text-xs font-bold"
+                  className="w-full mt-3 h-9 rounded-xl text-xs font-bold animate-sparkle"
                   onClick={() => continueWith(activeLocation.id)}
                 >
                   Pulse here
@@ -251,7 +251,7 @@ export default function PulsePage() {
             </p>
             <div className="mt-4">
               <Button
-                className="w-full h-12 rounded-2xl"
+                className="w-full h-12 rounded-2xl animate-sparkle"
                 onClick={() => continueWith(status.locationId)}
               >
                 Unlock this Pulse
@@ -286,7 +286,7 @@ export default function PulsePage() {
                 </SelectContent>
               </Select>
               <Button
-                className="w-full h-12 rounded-2xl mt-3"
+                className="w-full h-12 rounded-2xl mt-3 animate-sparkle"
                 onClick={() => continueWith(manualLocationId)}
               >
                 Continue
