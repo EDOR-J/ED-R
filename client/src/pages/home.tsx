@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Link, useLocation } from "wouter";
 import { usePulseData, useDrops, getNearestLocation } from "@/lib/api";
 import { loadSession, setMode, startRoom } from "@/lib/edorSession";
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { MapPin, Radio, Sparkles, Scan, Library, User } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
