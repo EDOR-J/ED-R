@@ -273,13 +273,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mt-6">
-        <Card className="glass rounded-3xl p-4" data-testid="card-note">
-          <p className="text-sm text-white/70 text-center italic" data-testid="text-note">
-            “Scarcity is the moat”
-          </p>
-        </Card>
-      </section>
     </Shell>
   );
 }
