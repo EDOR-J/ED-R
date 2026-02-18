@@ -7,19 +7,21 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import {
-  addAssignment,
-  addContent,
-  addLocation,
-  deleteAssignment,
-  deleteContent,
-  deleteLocation,
-  loadEdorData,
-  updateAssignment,
-  updateContent,
-  updateLocation,
+  useLocations,
+  useContents,
+  useAssignments,
+  useCreateLocation,
+  useUpdateLocation,
+  useDeleteLocation,
+  useCreateContent,
+  useUpdateContent,
+  useDeleteContent,
+  useCreateAssignment,
+  useUpdateAssignment,
+  useDeleteAssignment,
   type PulseMode,
-} from "@/lib/edorStore";
-import { useMemo, useState } from "react";
+} from "@/lib/api";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
@@ -35,12 +37,19 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(isAuthed());
   const [passcode, setPasscode] = useState("");
 
-  const [version, setVersion] = useState(0);
-  const data = useMemo(() => loadEdorData(), [version]);
+  const { data: locations = [], isLoading: locLoading } = useLocations();
+  const { data: contents = [], isLoading: conLoading } = useContents();
+  const { data: assignments = [], isLoading: asnLoading } = useAssignments();
 
-  function refresh() {
-    setVersion((v) => v + 1);
-  }
+  const createLocation = useCreateLocation();
+  const updateLoc = useUpdateLocation();
+  const deleteLoc = useDeleteLocation();
+  const createContent = useCreateContent();
+  const updateCon = useUpdateContent();
+  const deleteCon = useDeleteContent();
+  const createAssignment = useCreateAssignment();
+  const updateAsn = useUpdateAssignment();
+  const deleteAsn = useDeleteAssignment();
 
   if (!authed) {
     return (
@@ -108,6 +117,9 @@ export default function AdminPage() {
         </Button>
       }
     >
+      {(locLoading || conLoading || asnLoading) ? (
+        <p className="text-sm text-white/60 text-center py-8" data-testid="text-admin-loading">Loading…</p>
+      ) : (
       <Tabs defaultValue="locations" className="w-full">
         <TabsList className="grid w-full grid-cols-3 rounded-2xl bg-white/5" data-testid="tabs-admin">
           <TabsTrigger value="locations" className="rounded-xl" data-testid="tab-locations">
@@ -123,69 +135,61 @@ export default function AdminPage() {
 
         <TabsContent value="locations" className="mt-4">
           <LocationsPanel
-            locations={data.locations}
-            onCreate={(v) => {
-              addLocation(v);
+            locations={locations}
+            onCreate={async (v) => {
+              await createLocation.mutateAsync(v);
               toast("Location added");
-              refresh();
             }}
-            onUpdate={(id, patch) => {
-              updateLocation(id, patch);
+            onUpdate={async (id, patch) => {
+              await updateLoc.mutateAsync({ id, ...patch });
               toast("Location updated");
-              refresh();
             }}
-            onDelete={(id) => {
-              deleteLocation(id);
+            onDelete={async (id) => {
+              await deleteLoc.mutateAsync(id);
               toast("Location removed");
-              refresh();
             }}
           />
         </TabsContent>
 
         <TabsContent value="content" className="mt-4">
           <ContentPanel
-            contents={data.contents}
-            onCreate={(v) => {
-              addContent(v);
+            contents={contents}
+            onCreate={async (v) => {
+              await createContent.mutateAsync({ ...v, artworkSeed: null });
               toast("Content added");
-              refresh();
             }}
-            onUpdate={(id, patch) => {
-              updateContent(id, patch);
+            onUpdate={async (id, patch) => {
+              await updateCon.mutateAsync({ id, ...patch });
               toast("Content updated");
-              refresh();
             }}
-            onDelete={(id) => {
-              deleteContent(id);
+            onDelete={async (id) => {
+              await deleteCon.mutateAsync(id);
               toast("Content removed");
-              refresh();
             }}
           />
         </TabsContent>
 
         <TabsContent value="assign" className="mt-4">
           <AssignPanel
-            locations={data.locations}
-            contents={data.contents}
-            assignments={data.assignments}
-            onCreate={(v) => {
-              addAssignment(v);
+            locations={locations}
+            contents={contents}
+            assignments={assignments.map(a => ({ ...a, mode: a.mode as PulseMode }))}
+            onCreate={async (v) => {
+              await createAssignment.mutateAsync(v);
               toast("Assigned");
-              refresh();
             }}
-            onUpdate={(id, patch) => {
-              updateAssignment(id, patch);
+            onUpdate={async (id, patch) => {
+              await updateAsn.mutateAsync({ id, ...patch });
               toast("Assignment updated");
-              refresh();
             }}
-            onDelete={(id) => {
-              deleteAssignment(id);
+            onDelete={async (id) => {
+              await deleteAsn.mutateAsync(id);
               toast("Assignment removed");
-              refresh();
             }}
           />
         </TabsContent>
       </Tabs>
+      )}
 
       <Card className="mt-6 glass rounded-3xl p-4" data-testid="card-admin-note">
         <p className="text-xs text-white/55" data-testid="text-admin-note">

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
-import { loadEdorData } from "@/lib/edorStore";
+import { usePulseData } from "@/lib/api";
 import { loadSession, setLastContentId, getLatestSession, startRoom } from "@/lib/edorSession";
 import { Pause, Play, SkipBack, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,14 +18,14 @@ export default function ContentPage() {
   const [, params] = useRoute("/content/:contentId");
   const contentId = params?.contentId;
 
-  const data = useMemo(() => loadEdorData(), []);
+  const { data: pulseData, isLoading } = usePulseData();
   const session = useMemo(() => loadSession(), []);
   const latestSession = useMemo(() => getLatestSession(), []);
   const q = useQuery();
 
-  const content = data.contents.find((c) => c.id === contentId);
+  const content = pulseData?.contents.find((c) => c.id === contentId);
   const locId = q.get("loc") ?? session.selectedLocationId;
-  const location = data.locations.find((l) => l.id === locId);
+  const location = pulseData?.locations.find((l) => l.id === locId);
   const mode = (q.get("mode") ?? session.mode) as any;
 
   // Circle is only available for the most recent session of this specific content
@@ -89,6 +89,16 @@ export default function ContentPage() {
     } catch {
       setPlaying(false);
     }
+  }
+
+  if (isLoading) {
+    return (
+      <Shell title="Loading…">
+        <Card className="glass rounded-3xl p-4" data-testid="card-loading">
+          <p className="text-sm text-white/70 text-center py-8">Loading content…</p>
+        </Card>
+      </Shell>
+    );
   }
 
   if (!content) {

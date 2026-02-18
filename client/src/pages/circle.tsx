@@ -2,7 +2,7 @@ import Shell from "@/components/edor/shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { endRoom, loadSession, addToLibrary } from "@/lib/edorSession";
-import { loadEdorData } from "@/lib/edorStore";
+import { usePulseData } from "@/lib/api";
 import { MessageSquare, Users, X, Clock, QrCode, Play, Pause, Disc } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useMemo, useState, useEffect, useRef } from "react";
@@ -21,11 +21,11 @@ import { MoreHorizontal, ShieldAlert, Ban } from "lucide-react";
 export default function CircleRoom() {
   const [, setLocation] = useLocation();
   const session = useMemo(() => loadSession(), []);
-  const data = useMemo(() => loadEdorData(), []);
+  const { data: pulseData, isLoading } = usePulseData();
 
   const room = session.activeRoom;
-  const location = data.locations.find(l => l.id === room?.nodeId);
-  const content = data.contents.find(c => c.id === room?.contentId);
+  const location = pulseData?.locations.find(l => l.id === room?.nodeId);
+  const content = pulseData?.contents.find(c => c.id === room?.contentId);
 
   const [timeLeft, setTimeLeft] = useState<string>("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -156,6 +156,16 @@ export default function CircleRoom() {
     } else {
       setLocation("/");
     }
+  }
+
+  if (isLoading) {
+    return (
+      <Shell title="Circle">
+        <div className="flex items-center justify-center h-full min-h-[400px]">
+          <div className="text-white/40 text-sm">Loading…</div>
+        </div>
+      </Shell>
+    );
   }
 
   if (!room || !location || !content) return null;

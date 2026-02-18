@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Card } from "@/components/ui/card";
 import { Link, useLocation } from "wouter";
-import { loadEdorData, getThisWeeksDrops, getNearestLocation } from "@/lib/edorStore";
+import { usePulseData, useDrops, getNearestLocation } from "@/lib/api";
 import { loadSession, setMode, startRoom } from "@/lib/edorSession";
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { MapPin, Radio, Sparkles, Scan, Library, User } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -72,9 +72,8 @@ export default function HomePage() {
     */
   }, [setLocation]);
   const [mode, setModeState] = useState(loadSession().mode);
-  const data = useMemo(() => loadEdorData(), []);
-
-  const drops = useMemo(() => getThisWeeksDrops(data, 5), [data]);
+  const { data: pulseData, isLoading: pulseLoading } = usePulseData();
+  const { data: drops, isLoading: dropsLoading } = useDrops();
   const q = useQuery();
 
   // Pulse button interaction
@@ -137,15 +136,14 @@ export default function HomePage() {
     const joinId = q.get("join");
     const locId = q.get("loc");
     
-    if (joinId && locId) {
-      // Logic for joining via QR: must be at location
+    if (joinId && locId && pulseData?.locations) {
       if (!navigator.geolocation) {
         toast.error("Location required to join Circle");
         return;
       }
 
       navigator.geolocation.getCurrentPosition((pos) => {
-        const targetLoc = data.locations.find(l => l.id === locId);
+        const targetLoc = pulseData.locations.find(l => l.id === locId);
         if (!targetLoc) return;
 
         const nearest = getNearestLocation(
@@ -154,7 +152,7 @@ export default function HomePage() {
         );
 
         if (nearest && nearest.distanceMeters < 100) {
-          startRoom(locId, joinId.split('-')[1]); // contentId is 2nd part of joinId
+          startRoom(locId, joinId.split('-')[1]);
           setLocation("/circle");
           toast.success(`Joined Circle at ${targetLoc.name}`);
         } else {
@@ -162,7 +160,20 @@ export default function HomePage() {
         }
       });
     }
-  }, [q, data.locations]);
+  }, [q, pulseData?.locations]);
+
+  if (pulseLoading || dropsLoading) {
+    return (
+      <Shell right={<div />}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white/80" />
+            <p className="text-sm text-white/50" data-testid="text-loading">Loading…</p>
+          </div>
+        </div>
+      </Shell>
+    );
+  }
 
   return (
     <Shell
@@ -303,7 +314,7 @@ export default function HomePage() {
           </p>
         </div>
         <div className="mt-3 flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 scroll-smooth">
-          {data.contents.slice(0, 6).map((content) => (
+          {(pulseData?.contents ?? []).slice(0, 6).map((content) => (
             <Link
               key={content.id}
               href={`/content/${content.id}`}
@@ -340,8 +351,8 @@ export default function HomePage() {
         </div>
 
         <div className="mt-3 grid gap-3">
-          {drops.length ? (
-            drops.map(({ assignment, content, location }) => (
+          {(drops ?? []).length ? (
+            (drops ?? []).map(({ assignment, content, location }) => (
               <Card
                 key={assignment.id}
                 className="edor-noise glass rounded-3xl p-4"

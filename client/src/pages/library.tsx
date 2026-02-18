@@ -1,19 +1,37 @@
 import Shell from "@/components/edor/shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { loadSession, type UnlockedItem } from "@/lib/edorSession";
-import { Music, Play, ArrowLeft, Clock, MapPin, Users } from "lucide-react";
-import { useMemo } from "react";
+import { useLibrary, type ApiLibraryItem } from "@/lib/api";
+import { Music, Play, ArrowLeft, Clock, MapPin } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { format } from "date-fns";
 
 export default function LibraryPage() {
   const [, setLocation] = useLocation();
-  const session = useMemo(() => loadSession(), []);
+  const { data, isLoading } = useLibrary();
 
-  const libraryItems = useMemo(() => {
-    return session.library || [];
-  }, [session.library]);
+  const libraryItems: ApiLibraryItem[] = data || [];
+
+  if (isLoading) {
+    return (
+      <Shell
+        title="Library"
+        right={
+          <Link href="/">
+            <Button variant="ghost" size="icon" className="rounded-full text-white/60">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+        }
+      >
+        <div className="px-6 py-4 flex flex-col gap-4">
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-pulse text-white/40 text-sm">Loading library…</div>
+          </div>
+        </div>
+      </Shell>
+    );
+  }
 
   return (
     <Shell
@@ -36,7 +54,7 @@ export default function LibraryPage() {
 
         {libraryItems.length > 0 ? (
           <div className="grid gap-3">
-            {libraryItems.map((item: UnlockedItem) => (
+            {libraryItems.map((item: ApiLibraryItem) => (
               <Card 
                 key={item.id} 
                 className="edor-noise glass border-white/10 rounded-3xl p-4 flex items-center gap-4 group active:scale-[0.98] transition-transform"
@@ -66,36 +84,6 @@ export default function LibraryPage() {
                       </span>
                     )}
                   </div>
-
-                  {item.synapses && item.synapses.length > 0 && (
-                    <div className="mt-4 flex flex-col gap-2">
-                      <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em]">Synapses</p>
-                      {item.synapses.map(synapse => (
-                        <div key={synapse.id} className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2">
-                          <div className="flex justify-between items-start">
-                            <div className="flex flex-col gap-0.5">
-                              <p className="text-[10px] font-bold text-white/80">{synapse.locationName}</p>
-                              <p className="text-[8px] text-white/40 uppercase tracking-tighter">
-                                {format(new Date(synapse.endedAt), 'MMM d, h:mm a')}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 border border-primary/20">
-                              <Users className="h-2.5 w-2.5 text-primary" />
-                              <span className="text-[8px] font-bold text-primary">{synapse.participantsCount}</span>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            {Object.entries(synapse.reactions).map(([emoji, count]) => (
-                              <div key={emoji} className="flex items-center gap-1 bg-black/40 px-1.5 py-0.5 rounded-lg border border-white/5">
-                                <span className="text-[10px]">{emoji}</span>
-                                <span className="text-[8px] font-bold text-white/60">{count}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 <Button 

@@ -5,8 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { loadEdorData, getNearestLocation, pickContentForLocationMode, type PulseLocation } from "@/lib/edorStore";
-import { loadSession, setSelectedLocation, addUnlockedSession, addToLibrary } from "@/lib/edorSession";
+import { usePulseData, useUnlock, getNearestLocation, pickContentForLocationMode, type ApiLocation, type PulseMode } from "@/lib/api";
+import { loadSession, setSelectedLocation } from "@/lib/edorSession";
 import { MapPin, ShieldAlert, X } from "lucide-react";
 import { Map, Marker, Overlay } from "pigeon-maps";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,13 +18,23 @@ type Status =
 
 export default function PulsePage() {
   const [, setLocation] = useLocation();
-  const data = useMemo(() => loadEdorData(), []);
+  const { data, isLoading } = usePulseData();
   const session = useMemo(() => loadSession(), []);
+  const unlockMutation = useUnlock();
+
+  const locations = data?.locations ?? [];
+  const contents = data?.contents ?? [];
 
   const [status, setStatus] = useState<Status>({ state: "asking" });
-  const [manualLocationId, setManualLocationId] = useState<string>(data.locations[0]?.id ?? "");
+  const [manualLocationId, setManualLocationId] = useState<string>("");
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
-  const [activeLocation, setActiveLocation] = useState<PulseLocation | null>(null);
+  const [activeLocation, setActiveLocation] = useState<ApiLocation | null>(null);
+
+  useEffect(() => {
+    if (locations.length > 0 && !manualLocationId) {
+      setManualLocationId(locations[0]?.id ?? "");
+    }
+  }, [locations, manualLocationId]);
 
   const queryParams = new URLSearchParams(window.location.search);
   const joinRoomId = queryParams.get("join");
@@ -32,7 +42,7 @@ export default function PulsePage() {
 
   useEffect(() => {
     if (joinRoomId && joinLocId && userCoords) {
-      const location = data.locations.find(l => l.id === joinLocId);
+      const location = locations.find(l => l.id === joinLocId);
       if (!location) {
         toast.error("Invalid Listening Circle");
         return;
@@ -43,13 +53,12 @@ export default function PulsePage() {
         return;
       }
 
-      // 100m geofence check
       const lat1 = userCoords[0];
       const lon1 = userCoords[1];
       const lat2 = location.lat;
       const lon2 = location.lng;
       
-      const R = 6371; // km
+      const R = 6371;
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -63,7 +72,6 @@ export default function PulsePage() {
         return;
       }
 
-      // Join logic
       const [nodeId, contentId] = joinRoomId.split('-');
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 60);
@@ -78,14 +86,13 @@ export default function PulsePage() {
       };
       
       const next = { ...s, activeRoom: room };
-      // Import missing type or use any for mockup
       (next as any).activeRoom = room;
       localStorage.setItem("edor:pulse:session:v1", JSON.stringify(next));
       
       toast.success(`Joined Circle at ${location.name}`);
       setLocation("/circle");
     }
-  }, [joinRoomId, joinLocId, userCoords, data.locations, setLocation]);
+  }, [joinRoomId, joinLocId, userCoords, locations, setLocation]);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,7 +110,7 @@ export default function PulsePage() {
           setUserCoords(coords);
           const nearest = getNearestLocation(
             { lat: coords[0], lng: coords[1] },
-            data.locations,
+            locations,
           );
           if (!nearest) {
             setStatus({ state: "denied" });
@@ -127,16 +134,18 @@ export default function PulsePage() {
     return () => {
       cancelled = true;
     };
-  }, [data.locations]);
+  }, [locations]);
 
   const center = userCoords || [37.7749, -122.4194];
 
-  function continueWith(locationId: string) {
-    const location = data.locations.find((l) => l.id === locationId) ?? null;
+  async function continueWith(locationId: string) {
+    if (!data) return;
+
+    const location = locations.find((l) => l.id === locationId) ?? null;
     
     const picked = pickContentForLocationMode(data, {
       locationId,
-      mode: session.mode,
+      mode: session.mode as PulseMode,
     });
 
     if (!picked) {
@@ -146,22 +155,38 @@ export default function PulsePage() {
       return;
     }
 
-    addUnlockedSession(locationId, picked.content.id, session.mode);
-    
-    // Auto-save to Library
-    addToLibrary({
-      contentId: picked.content.id,
-      title: picked.content.title,
-      artist: picked.content.creator,
-      mode: session.mode,
-      nodeId: locationId,
-      locationName: location?.name || "Unknown Location",
-      unlockedAt: new Date().toISOString(),
-      audioUrl: picked.content.audioUrl,
-      artworkUrl: "" // placeholder
-    });
+    try {
+      await unlockMutation.mutateAsync({
+        nodeId: locationId,
+        contentId: picked.content.id,
+        mode: session.mode,
+      });
+    } catch {
+      // continue to content even if unlock fails
+    }
 
     setLocation(`/content/${picked.content.id}?loc=${locationId}&mode=${session.mode}`);
+  }
+
+  if (isLoading) {
+    return (
+      <Shell
+        title="Find your Pulse"
+        right={
+          <Link
+            href="/"
+            className="rounded-full px-3 py-2 text-xs text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10 transition"
+            data-testid="link-back-home"
+          >
+            Home
+          </Link>
+        }
+      >
+        <div className="flex items-center justify-center h-[400px]">
+          <p className="text-sm text-white/60">Loading Pulse data…</p>
+        </div>
+      </Shell>
+    );
   }
 
   return (
@@ -184,7 +209,7 @@ export default function PulsePage() {
           defaultZoom={13}
           boxClassname="edor-map"
         >
-          {data.locations.map((loc) => (
+          {locations.map((loc) => (
             <Marker 
               key={loc.id} 
               anchor={[loc.lat, loc.lng]} 
@@ -247,7 +272,7 @@ export default function PulsePage() {
               Nearest Pulse Detected
             </p>
             <p className="mt-2 text-lg font-semibold text-white">
-              {data.locations.find(l => l.id === status.locationId)?.name}
+              {locations.find(l => l.id === status.locationId)?.name}
             </p>
             <div className="mt-4">
               <Button
@@ -278,7 +303,7 @@ export default function PulsePage() {
                   <SelectValue placeholder="Select a Pulse" />
                 </SelectTrigger>
                 <SelectContent className="border-white/10 bg-black">
-                  {data.locations.map((l) => (
+                  {locations.map((l) => (
                     <SelectItem key={l.id} value={l.id}>
                       {l.name}
                     </SelectItem>
