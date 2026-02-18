@@ -35,6 +35,34 @@ export default function HomePage() {
   const drops = useMemo(() => getThisWeeksDrops(data, 5), [data]);
   const q = useQuery();
 
+  // Pulse button interaction
+  const [sparkleDuration, setSparkleDuration] = useState(2.5);
+  const holdInterval = useState<NodeJS.Timeout | null>(null)[0];
+  // We use a ref for the interval to clear it easily
+  const intervalRef = useState<{ current: NodeJS.Timeout | null }>({ current: null })[0];
+
+  const startHold = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    
+    intervalRef.current = setInterval(() => {
+      setSparkleDuration((prev) => Math.max(0.2, prev * 0.9)); // Accelerate
+    }, 100);
+  };
+
+  const endHold = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setSparkleDuration(2.5); // Reset
+  };
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     const joinId = q.get("join");
     const locId = q.get("loc");
@@ -146,8 +174,14 @@ export default function HomePage() {
         <div className="mt-5">
           <Button
             size="lg"
-            className="w-full rounded-2xl h-14 text-base font-semibold tracking-wide animate-sparkle"
+            className="w-full rounded-2xl h-14 text-base font-semibold tracking-wide animate-sparkle transition-all duration-300 active:scale-[0.98]"
             onClick={() => setLocation("/pulse")}
+            onMouseDown={startHold}
+            onMouseUp={endHold}
+            onMouseLeave={endHold}
+            onTouchStart={startHold}
+            onTouchEnd={endHold}
+            style={{ "--sparkle-duration": `${sparkleDuration}s` } as React.CSSProperties}
             data-testid="button-pulse"
           >
             Pulse

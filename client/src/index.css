@@ -177,7 +177,7 @@
       transparent
     );
     transform: translateX(-150%) skewX(-15deg);
-    animation: shimmer 2.5s infinite;
+    animation: shimmer var(--sparkle-duration, 2.5s) infinite;
     pointer-events: none;
   }
 
