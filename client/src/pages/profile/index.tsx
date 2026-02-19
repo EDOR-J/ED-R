@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import {
   User,
   Mail,
@@ -23,20 +24,7 @@ import {
   FileText,
   HelpCircle,
   Info,
-  Pencil,
-  Phone,
-  KeyRound,
-  Link2,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 function SettingsRow({
   icon: Icon,
@@ -89,10 +77,10 @@ function SectionHeader({ label }: { label: string }) {
 
 export default function ProfilePage() {
   const [, setLocation] = useLocation();
+  const { user, logout } = useAuth();
 
-  const [displayName, setDisplayName] = useState("Pulse User");
-  const [email, setEmail] = useState("user@edor.fm");
-  const [phone, setPhone] = useState("");
+  const displayName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Pulse User";
+  const email = user?.email || "";
 
   const [notifyNearby, setNotifyNearby] = useState(true);
   const [notifyDrops, setNotifyDrops] = useState(true);
@@ -107,65 +95,19 @@ export default function ProfilePage() {
   const [profileVisible, setProfileVisible] = useState(true);
 
   const handleSignOut = () => {
-    toast.success("Signed out successfully");
-    setLocation("/login");
+    logout();
   };
 
   return (
     <Shell>
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-4 mb-2">
-          <div className="h-20 w-20 rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center relative group">
-            <User className="h-10 w-10 text-white/20" />
-            <Dialog>
-              <DialogTrigger asChild>
-                <button className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary flex items-center justify-center border-2 border-black hover:scale-110 transition-transform">
-                  <Pencil className="h-3 w-3 text-black" />
-                </button>
-              </DialogTrigger>
-              <DialogContent className="bg-[#0A0A0A] border-white/10 text-white">
-                <DialogHeader>
-                  <DialogTitle>Edit Profile</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label className="text-xs text-white/60">Display Name</Label>
-                    <Input
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      className="h-11 rounded-2xl border-white/10 bg-white/5 text-white"
-                      data-testid="input-display-name"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label className="text-xs text-white/60">Email</Label>
-                    <Input
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="h-11 rounded-2xl border-white/10 bg-white/5 text-white"
-                      data-testid="input-email"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label className="text-xs text-white/60">Phone</Label>
-                    <Input
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+1 (555) 000-0000"
-                      className="h-11 rounded-2xl border-white/10 bg-white/5 text-white"
-                      data-testid="input-phone"
-                    />
-                  </div>
-                  <Button
-                    className="h-11 rounded-2xl mt-2"
-                    onClick={() => toast.success("Profile updated")}
-                    data-testid="button-save-profile"
-                  >
-                    Save Changes
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+          <div className="h-20 w-20 rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center relative group overflow-hidden">
+            {user?.profileImageUrl ? (
+              <img src={user.profileImageUrl} alt={displayName} className="h-full w-full object-cover" />
+            ) : (
+              <User className="h-10 w-10 text-white/20" />
+            )}
           </div>
           <div>
             <h2 className="text-2xl font-bold text-white font-serif" data-testid="text-display-name">{displayName}</h2>
@@ -177,42 +119,8 @@ export default function ProfilePage() {
 
         <SectionHeader label="Account" />
         <Card className="edor-noise glass border-white/10 rounded-3xl overflow-hidden divide-y divide-white/5">
-          <Dialog>
-            <DialogTrigger asChild>
-              <div>
-                <SettingsRow icon={Pencil} label="Edit Profile" subtitle="Name, photo, bio" testId="setting-edit-profile" onClick={() => {}} />
-              </div>
-            </DialogTrigger>
-            <DialogContent className="bg-[#0A0A0A] border-white/10 text-white">
-              <DialogHeader>
-                <DialogTitle>Edit Profile</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label className="text-xs text-white/60">Display Name</Label>
-                  <Input
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    className="h-11 rounded-2xl border-white/10 bg-white/5 text-white"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label className="text-xs text-white/60">Email</Label>
-                  <Input
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="h-11 rounded-2xl border-white/10 bg-white/5 text-white"
-                  />
-                </div>
-                <Button className="h-11 rounded-2xl mt-2" onClick={() => toast.success("Profile updated")}>
-                  Save Changes
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-          <SettingsRow icon={Phone} label="Phone Number" subtitle={phone || "Not set"} onClick={() => toast("Phone verification coming soon")} testId="setting-phone" />
-          <SettingsRow icon={KeyRound} label="Change Password" onClick={() => toast("Password reset sent to your email")} testId="setting-password" />
-          <SettingsRow icon={Link2} label="Connected Accounts" subtitle="Google, Apple" onClick={() => toast("Account linking coming soon")} testId="setting-connected" />
+          <SettingsRow icon={User} label="Name" subtitle={displayName} testId="setting-name" />
+          <SettingsRow icon={Mail} label="Email" subtitle={email || "Not set"} testId="setting-email" />
         </Card>
 
         <SectionHeader label="Notifications" />

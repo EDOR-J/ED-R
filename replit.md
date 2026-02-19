@@ -71,7 +71,8 @@ All routes are in `server/routes.ts`:
 ### Database
 - **ORM**: Drizzle ORM with PostgreSQL dialect
 - **Schema** (`shared/schema.ts`): Eleven tables:
-  - `users` — id, username, password, displayName, phone
+  - `sessions` — sid, sess, expire (Replit Auth session storage)
+  - `users` — id, email, firstName, lastName, profileImageUrl, createdAt, updatedAt
   - `locations` — id, name, description, lat, lng, isPermanent
   - `contents` — id, title, creator, description, audioUrl, artworkSeed
   - `assignments` — id, locationId, mode, contentId, startAt, endAt, createdAt
@@ -99,7 +100,8 @@ All routes are in `server/routes.ts`:
 - `/social` — Friends list, activity feed, friend requests, shared library discovery
 - `/listen-chat` — Listen Chat rooms (group listening with built-in chat for friends with shared tracks)
 - `/admin` — Admin panel (passcode-protected, manages locations/content/assignments)
-- `/login`, `/signup`, `/forgot-password`, `/profile` — Auth and profile pages
+- `/login` — Replit Auth login page (redirects to /api/login)
+- `/profile` — User profile and settings page
 
 ### Development vs Production
 - **Development**: Vite dev server with HMR proxied through Express, with Replit-specific plugins (cartographer, dev-banner)
@@ -111,11 +113,14 @@ All routes are in `server/routes.ts`:
 - **PostgreSQL**: Primary data store, connected via `DATABASE_URL` environment variable
 - **connect-pg-simple**: Session storage in PostgreSQL
 
-### Authentication (Planned/Partial)
-- **Supabase**: Used for OAuth authentication (Google and Apple sign-in)
-  - Requires `SUPABASE_URL` and `SUPABASE_ANON_KEY` environment variables
-  - Google OAuth and Apple OAuth configured through Supabase dashboard
-  - Currently in transition — auth pages exist but full integration may be incomplete
+### Authentication
+- **Replit Auth**: OpenID Connect authentication via Replit
+  - Auth module in `server/replit_integrations/auth/` (replitAuth.ts, storage.ts, routes.ts)
+  - Client hook: `client/src/hooks/use-auth.ts` (useAuth hook)
+  - Routes: `/api/login`, `/api/callback`, `/api/logout`, `/api/auth/user`
+  - Session storage in PostgreSQL `sessions` table via connect-pg-simple
+  - Protected routes require authentication; unauthenticated users redirected to /login
+  - User data: id, email, firstName, lastName, profileImageUrl from Replit OIDC claims
 
 ### Key NPM Packages
 - **drizzle-orm** + **drizzle-kit**: Database ORM and migration tooling

@@ -18,6 +18,7 @@ import {
   type ApiUserStatus,
   type ApiSharedLibrary,
 } from "@/lib/api";
+import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import {
   Search,
@@ -33,18 +34,6 @@ import {
   Loader2,
   Sparkles,
 } from "lucide-react";
-
-function getSessionUserId(): string {
-  let id = localStorage.getItem("edor_user_id");
-  if (!id) {
-    id = "";
-  }
-  return id;
-}
-
-function setSessionUserId(id: string) {
-  localStorage.setItem("edor_user_id", id);
-}
 
 function timeAgo(dateStr: string) {
   const now = Date.now();
@@ -145,7 +134,9 @@ function SharedLibraryCard({ item, onStartChat }: { item: ApiSharedLibrary; onSt
 
 export default function FriendsPage() {
   const [, setLocation] = useLocation();
-  const userId = getSessionUserId();
+  const { user } = useAuth();
+  const userId = user?.id || "";
+  const displayName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Pulse User";
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"activity" | "requests" | "discover">("activity");
 
@@ -162,12 +153,9 @@ export default function FriendsPage() {
 
   const handleSeedSocial = async () => {
     try {
-      const result = await seedSocial.mutateAsync();
-      if (result.myUserId) {
-        setSessionUserId(result.myUserId);
-        window.location.reload();
-      }
+      await seedSocial.mutateAsync();
       toast.success("Social data loaded!");
+      window.location.reload();
     } catch {
       toast.error("Already seeded");
     }

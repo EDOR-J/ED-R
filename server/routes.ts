@@ -7,6 +7,7 @@ import {
   insertFriendshipSchema, insertUserStatusSchema,
   insertListenChatSchema, insertListenChatMemberSchema, insertChatMessageSchema,
 } from "@shared/schema";
+import { authStorage } from "./replit_integrations/auth";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -194,7 +195,7 @@ export async function registerRoutes(
     const q = req.query.q as string;
     if (!q || q.length < 2) return res.json([]);
     const results = await storage.searchUsers(q);
-    res.json(results.map(u => ({ id: u.id, username: u.username, displayName: u.displayName })));
+    res.json(results.map(u => ({ id: u.id, username: u.email || u.id, displayName: `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email || "User" })));
   });
 
   app.post("/api/friends/request", async (req, res) => {
@@ -427,14 +428,14 @@ export async function registerRoutes(
     }
 
     const demoUsers = await Promise.all([
-      storage.createUser({ username: "maya_pulse", password: "demo123", displayName: "Maya Chen", phone: "" }),
-      storage.createUser({ username: "jax_vinyl", password: "demo123", displayName: "Jax Rivera", phone: "" }),
-      storage.createUser({ username: "luna_beats", password: "demo123", displayName: "Luna Park", phone: "" }),
-      storage.createUser({ username: "kai_drift", password: "demo123", displayName: "Kai Nakamura", phone: "" }),
-      storage.createUser({ username: "zoe_echo", password: "demo123", displayName: "Zoe Echo", phone: "" }),
+      authStorage.upsertUser({ id: "demo-maya", email: "maya@edor.app", firstName: "Maya", lastName: "Chen" }),
+      authStorage.upsertUser({ id: "demo-jax", email: "jax@edor.app", firstName: "Jax", lastName: "Rivera" }),
+      authStorage.upsertUser({ id: "demo-luna", email: "luna@edor.app", firstName: "Luna", lastName: "Park" }),
+      authStorage.upsertUser({ id: "demo-kai", email: "kai@edor.app", firstName: "Kai", lastName: "Nakamura" }),
+      authStorage.upsertUser({ id: "demo-zoe", email: "zoe@edor.app", firstName: "Zoe", lastName: "Echo" }),
     ]);
 
-    const myUser = await storage.createUser({ username: "you", password: "demo123", displayName: "Pulse User", phone: "" });
+    const myUser = await authStorage.upsertUser({ id: "demo-you", email: "you@edor.app", firstName: "Pulse", lastName: "User" });
 
     await Promise.all([
       storage.sendFriendRequest({ senderId: demoUsers[0].id, receiverId: myUser.id }),

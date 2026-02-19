@@ -15,19 +15,19 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function LibraryPage() {
   const [, setLocation] = useLocation();
   const { data, isLoading } = useLibrary();
   const deleteItem = useDeleteLibraryItem();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const libraryItems: ApiLibraryItem[] = data || [];
 
-  const getUserId = () => localStorage.getItem("edor_user_id") || "";
-
   const handleDelete = (item: ApiLibraryItem) => {
-    const userId = getUserId();
+    const userId = user?.id || "";
     if (!userId) return;
     deleteItem.mutate({ id: item.id, userId }, {
       onSuccess: () => {

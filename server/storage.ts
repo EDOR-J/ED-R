@@ -1,5 +1,5 @@
 import {
-  type User, type InsertUser,
+  type User, type UpsertUser,
   type Location, type InsertLocation,
   type Content, type InsertContent,
   type Assignment, type InsertAssignment,
@@ -19,8 +19,6 @@ import { eq, and, or, lte, gte, desc, inArray } from "drizzle-orm";
 export interface IStorage {
   // Users
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
   searchUsers(query: string): Promise<User[]>;
 
   // Locations
@@ -93,23 +91,14 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
-  }
-
   async searchUsers(query: string): Promise<User[]> {
     const all = await db.select().from(users);
     const q = query.toLowerCase();
-    return all.filter(u =>
-      u.username.toLowerCase().includes(q) ||
-      (u.displayName && u.displayName.toLowerCase().includes(q))
-    );
+    return all.filter(u => {
+      const name = `${u.firstName || ""} ${u.lastName || ""}`.trim().toLowerCase();
+      const email = (u.email || "").toLowerCase();
+      return name.includes(q) || email.includes(q) || u.id.toLowerCase().includes(q);
+    });
   }
 
   async getLocations(): Promise<Location[]> {

@@ -3,13 +3,7 @@ import { pgTable, text, varchar, boolean, real, timestamp, integer } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  displayName: text("display_name"),
-  phone: text("phone"),
-});
+export * from "./models/auth";
 
 export const locations = pgTable("locations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -116,7 +110,6 @@ export const chatMessages = pgTable("chat_messages", {
 });
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertLocationSchema = createInsertSchema(locations).omit({ id: true });
 export const insertContentSchema = createInsertSchema(contents).omit({ id: true });
 export const insertAssignmentSchema = createInsertSchema(assignments).omit({ id: true, createdAt: true });
@@ -130,8 +123,6 @@ export const insertListenChatMemberSchema = createInsertSchema(listenChatMembers
 export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({ id: true, sentAt: true });
 
 // Types
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
 export type Location = typeof locations.$inferSelect;
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type Content = typeof contents.$inferSelect;

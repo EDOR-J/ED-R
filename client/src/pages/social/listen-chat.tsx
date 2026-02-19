@@ -16,6 +16,7 @@ import {
   type ApiListenChat,
   type ApiChatMessage,
 } from "@/lib/api";
+import { useAuth } from "@/hooks/use-auth";
 import { useLocation, useSearch } from "wouter";
 import {
   Play,
@@ -29,14 +30,6 @@ import {
   Plus,
   MessageCircle,
 } from "lucide-react";
-
-function getSessionUserId(): string {
-  return localStorage.getItem("edor_user_id") || "";
-}
-
-function getDisplayName(): string {
-  return localStorage.getItem("edor_display_name") || "Pulse User";
-}
 
 function ChatBubble({ msg, isOwn }: { msg: ApiChatMessage; isOwn: boolean }) {
   const time = new Date(msg.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -91,8 +84,9 @@ function ActiveChatCard({ chat, onClick }: { chat: ApiListenChat; onClick: () =>
 
 function ListenChatRoom({ chatId }: { chatId: string }) {
   const [, setLocation] = useLocation();
-  const userId = getSessionUserId();
-  const displayName = getDisplayName();
+  const { user } = useAuth();
+  const userId = user?.id || "";
+  const displayName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Pulse User";
   const [message, setMessage] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -238,8 +232,9 @@ export default function ListenChatPage() {
   const friendId = params.get("friendId");
   const contentId = params.get("contentId");
 
-  const userId = getSessionUserId();
-  const displayName = getDisplayName();
+  const { user } = useAuth();
+  const userId = user?.id || "";
+  const displayName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Pulse User";
 
   const { data: activeChats } = useActiveListenChats();
   const { data: sharedLibrary } = useSharedLibrary(userId);
