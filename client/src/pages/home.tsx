@@ -6,7 +6,7 @@ import { Link, useLocation } from "wouter";
 import { usePulseData, useDrops, getNearestLocation } from "@/lib/api";
 import { loadSession, setMode, startRoom } from "@/lib/edorSession";
 import { useMemo, useState, useEffect } from "react";
-import { MapPin, Radio, Sparkles, Scan, Library, User } from "lucide-react";
+import { MapPin, Radio, Sparkles, Scan } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import logo from "@assets/Screenshot_20260130_133453_Gallery_1769832888373.jpeg";
@@ -178,31 +178,13 @@ export default function HomePage() {
   return (
     <Shell
       right={
-        <div className="flex items-center gap-2">
-          <Link
-            href="/profile"
-            className="rounded-full px-3 py-2 text-xs text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10 transition flex items-center gap-2"
-            data-testid="link-profile"
-          >
-            <User className="h-4 w-4" />
-            Profile
-          </Link>
-          <Link
-            href="/library"
-            className="rounded-full px-3 py-2 text-xs text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10 transition flex items-center gap-2"
-            data-testid="link-library"
-          >
-            <Library className="h-4 w-4" />
-            Library
-          </Link>
-          <Link
-            href="/admin"
-            className="rounded-full px-3 py-2 text-xs text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10 transition"
-            data-testid="link-admin"
-          >
-            Admin
-          </Link>
-        </div>
+        <Link
+          href="/admin"
+          className="rounded-full px-3 py-2 text-xs text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10 transition"
+          data-testid="link-admin"
+        >
+          Admin
+        </Link>
       }
     >
       <div className="w-full pt-4 pb-8 overflow-hidden">

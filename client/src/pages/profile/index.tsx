@@ -1,12 +1,110 @@
 import Shell from "@/components/edor/shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { User, Mail, LogOut, ChevronRight, Shield, Bell } from "lucide-react";
+import { useState } from "react";
+import {
+  User,
+  Mail,
+  LogOut,
+  ChevronRight,
+  Shield,
+  Bell,
+  MapPin,
+  Volume2,
+  Wifi,
+  Eye,
+  Clock,
+  Headphones,
+  Compass,
+  Ruler,
+  FileText,
+  HelpCircle,
+  Info,
+  Pencil,
+  Phone,
+  KeyRound,
+  Link2,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+function SettingsRow({
+  icon: Icon,
+  label,
+  subtitle,
+  onClick,
+  rightElement,
+  danger,
+  testId,
+}: {
+  icon: any;
+  label: string;
+  subtitle?: string;
+  onClick?: () => void;
+  rightElement?: React.ReactNode;
+  danger?: boolean;
+  testId?: string;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between p-4 rounded-2xl transition-all ${
+        onClick ? "cursor-pointer active:scale-[0.98] hover:bg-white/5" : ""
+      } ${danger ? "border border-red-500/10" : ""}`}
+      onClick={onClick}
+      data-testid={testId}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${
+          danger ? "bg-red-500/10" : "bg-white/5"
+        }`}>
+          <Icon className={`h-4 w-4 ${danger ? "text-red-400" : "text-white/50"}`} />
+        </div>
+        <div className="min-w-0">
+          <p className={`text-sm font-medium ${danger ? "text-red-400" : "text-white/90"}`}>{label}</p>
+          {subtitle && <p className="text-[11px] text-white/35 mt-0.5">{subtitle}</p>}
+        </div>
+      </div>
+      {rightElement ?? (onClick ? <ChevronRight className="h-4 w-4 text-white/20 shrink-0" /> : null)}
+    </div>
+  );
+}
+
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <p className="text-[10px] text-white/30 font-bold uppercase tracking-[0.3em] ml-1 mt-6 mb-2">
+      {label}
+    </p>
+  );
+}
 
 export default function ProfilePage() {
   const [, setLocation] = useLocation();
+
+  const [displayName, setDisplayName] = useState("Pulse User");
+  const [email, setEmail] = useState("user@edor.fm");
+  const [phone, setPhone] = useState("");
+
+  const [notifyNearby, setNotifyNearby] = useState(true);
+  const [notifyDrops, setNotifyDrops] = useState(true);
+  const [notifyCircles, setNotifyCircles] = useState(false);
+
+  const [highQuality, setHighQuality] = useState(false);
+  const [wifiOnly, setWifiOnly] = useState(true);
+  const [autoPlay, setAutoPlay] = useState(true);
+
+  const [shareLocation, setShareLocation] = useState(true);
+  const [showListeningHistory, setShowListeningHistory] = useState(true);
+  const [profileVisible, setProfileVisible] = useState(true);
 
   const handleSignOut = () => {
     toast.success("Signed out successfully");
@@ -14,44 +112,204 @@ export default function ProfilePage() {
   };
 
   return (
-    <Shell title="Profile">
-      <div className="px-6 py-6 flex flex-col gap-8">
-        <div className="flex items-center gap-4">
-          <div className="h-20 w-20 rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center">
+    <Shell>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-4 mb-2">
+          <div className="h-20 w-20 rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center relative group">
             <User className="h-10 w-10 text-white/20" />
+            <Dialog>
+              <DialogTrigger asChild>
+                <button className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary flex items-center justify-center border-2 border-black hover:scale-110 transition-transform">
+                  <Pencil className="h-3 w-3 text-black" />
+                </button>
+              </DialogTrigger>
+              <DialogContent className="bg-[#0A0A0A] border-white/10 text-white">
+                <DialogHeader>
+                  <DialogTitle>Edit Profile</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label className="text-xs text-white/60">Display Name</Label>
+                    <Input
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      className="h-11 rounded-2xl border-white/10 bg-white/5 text-white"
+                      data-testid="input-display-name"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="text-xs text-white/60">Email</Label>
+                    <Input
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="h-11 rounded-2xl border-white/10 bg-white/5 text-white"
+                      data-testid="input-email"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="text-xs text-white/60">Phone</Label>
+                    <Input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+1 (555) 000-0000"
+                      className="h-11 rounded-2xl border-white/10 bg-white/5 text-white"
+                      data-testid="input-phone"
+                    />
+                  </div>
+                  <Button
+                    className="h-11 rounded-2xl mt-2"
+                    onClick={() => toast.success("Profile updated")}
+                    data-testid="button-save-profile"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white font-serif">Pulse User</h2>
+            <h2 className="text-2xl font-bold text-white font-serif" data-testid="text-display-name">{displayName}</h2>
             <p className="text-xs text-white/40 font-bold uppercase tracking-widest mt-1 flex items-center gap-2">
-              <Mail className="h-3 w-3" /> user@edor.fm
+              <Mail className="h-3 w-3" /> {email}
             </p>
           </div>
         </div>
 
-        <div className="grid gap-3">
-          <p className="text-[10px] text-white/30 font-bold uppercase tracking-[0.3em] ml-1">Settings</p>
-          {[
-            { icon: Bell, label: "Pulse Notifications" },
-            { icon: Shield, label: "Privacy & Visibility" },
-          ].map((item, i) => (
-            <Card key={i} className="edor-noise glass border-white/10 p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-transform cursor-pointer">
-              <div className="flex items-center gap-3">
-                <item.icon className="h-4 w-4 text-white/40" />
-                <span className="text-sm font-bold text-white/80">{item.label}</span>
+        <SectionHeader label="Account" />
+        <Card className="edor-noise glass border-white/10 rounded-3xl overflow-hidden divide-y divide-white/5">
+          <Dialog>
+            <DialogTrigger asChild>
+              <div>
+                <SettingsRow icon={Pencil} label="Edit Profile" subtitle="Name, photo, bio" testId="setting-edit-profile" onClick={() => {}} />
               </div>
-              <ChevronRight className="h-4 w-4 text-white/20" />
-            </Card>
-          ))}
-        </div>
+            </DialogTrigger>
+            <DialogContent className="bg-[#0A0A0A] border-white/10 text-white">
+              <DialogHeader>
+                <DialogTitle>Edit Profile</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label className="text-xs text-white/60">Display Name</Label>
+                  <Input
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="h-11 rounded-2xl border-white/10 bg-white/5 text-white"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-xs text-white/60">Email</Label>
+                  <Input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-11 rounded-2xl border-white/10 bg-white/5 text-white"
+                  />
+                </div>
+                <Button className="h-11 rounded-2xl mt-2" onClick={() => toast.success("Profile updated")}>
+                  Save Changes
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <SettingsRow icon={Phone} label="Phone Number" subtitle={phone || "Not set"} onClick={() => toast("Phone verification coming soon")} testId="setting-phone" />
+          <SettingsRow icon={KeyRound} label="Change Password" onClick={() => toast("Password reset sent to your email")} testId="setting-password" />
+          <SettingsRow icon={Link2} label="Connected Accounts" subtitle="Google, Apple" onClick={() => toast("Account linking coming soon")} testId="setting-connected" />
+        </Card>
 
-        <Button 
-          variant="outline" 
-          className="w-full h-14 rounded-2xl border-red-500/20 text-red-500 hover:bg-red-500/5 hover:text-red-400 mt-4 font-bold tracking-widest uppercase text-xs gap-2"
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-4 w-4" />
-          Terminate Session
-        </Button>
+        <SectionHeader label="Notifications" />
+        <Card className="edor-noise glass border-white/10 rounded-3xl overflow-hidden divide-y divide-white/5">
+          <SettingsRow
+            icon={MapPin}
+            label="Nearby Pulse Alerts"
+            subtitle="When you're near a drop location"
+            rightElement={<Switch checked={notifyNearby} onCheckedChange={setNotifyNearby} data-testid="switch-notify-nearby" />}
+            testId="setting-nearby"
+          />
+          <SettingsRow
+            icon={Bell}
+            label="New Drop Notifications"
+            subtitle="When new content goes live"
+            rightElement={<Switch checked={notifyDrops} onCheckedChange={setNotifyDrops} data-testid="switch-notify-drops" />}
+            testId="setting-drops"
+          />
+          <SettingsRow
+            icon={Headphones}
+            label="Circle Invites"
+            subtitle="When someone invites you to a Circle"
+            rightElement={<Switch checked={notifyCircles} onCheckedChange={setNotifyCircles} data-testid="switch-notify-circles" />}
+            testId="setting-circles"
+          />
+        </Card>
+
+        <SectionHeader label="Audio & Playback" />
+        <Card className="edor-noise glass border-white/10 rounded-3xl overflow-hidden divide-y divide-white/5">
+          <SettingsRow
+            icon={Volume2}
+            label="High Quality Audio"
+            subtitle="Uses more data when streaming"
+            rightElement={<Switch checked={highQuality} onCheckedChange={setHighQuality} data-testid="switch-hq-audio" />}
+            testId="setting-audio-quality"
+          />
+          <SettingsRow
+            icon={Wifi}
+            label="Stream on Wi-Fi Only"
+            subtitle="Save mobile data"
+            rightElement={<Switch checked={wifiOnly} onCheckedChange={setWifiOnly} data-testid="switch-wifi-only" />}
+            testId="setting-wifi"
+          />
+          <SettingsRow
+            icon={Compass}
+            label="Auto-Play on Pulse"
+            subtitle="Start playback after unlock"
+            rightElement={<Switch checked={autoPlay} onCheckedChange={setAutoPlay} data-testid="switch-autoplay" />}
+            testId="setting-autoplay"
+          />
+        </Card>
+
+        <SectionHeader label="Location & Privacy" />
+        <Card className="edor-noise glass border-white/10 rounded-3xl overflow-hidden divide-y divide-white/5">
+          <SettingsRow
+            icon={MapPin}
+            label="Share Location with Circles"
+            subtitle="Visible to Circle members only"
+            rightElement={<Switch checked={shareLocation} onCheckedChange={setShareLocation} data-testid="switch-share-location" />}
+            testId="setting-share-location"
+          />
+          <SettingsRow
+            icon={Eye}
+            label="Profile Visible in Circles"
+            subtitle="Others can see your display name"
+            rightElement={<Switch checked={profileVisible} onCheckedChange={setProfileVisible} data-testid="switch-profile-visible" />}
+            testId="setting-profile-visible"
+          />
+          <SettingsRow
+            icon={Clock}
+            label="Listening History"
+            subtitle="Show recent Pulse activity"
+            rightElement={<Switch checked={showListeningHistory} onCheckedChange={setShowListeningHistory} data-testid="switch-history" />}
+            testId="setting-history"
+          />
+          <SettingsRow icon={Ruler} label="Distance Units" subtitle="Metric (meters)" onClick={() => toast("Unit preferences coming soon")} testId="setting-units" />
+        </Card>
+
+        <SectionHeader label="Support" />
+        <Card className="edor-noise glass border-white/10 rounded-3xl overflow-hidden divide-y divide-white/5">
+          <SettingsRow icon={HelpCircle} label="Help & FAQ" onClick={() => toast("Help center coming soon")} testId="setting-help" />
+          <SettingsRow icon={FileText} label="Terms of Service" onClick={() => toast("Terms of service")} testId="setting-terms" />
+          <SettingsRow icon={Shield} label="Privacy Policy" onClick={() => toast("Privacy policy")} testId="setting-privacy" />
+          <SettingsRow icon={Info} label="About EDØR" subtitle="v1.0.4" onClick={() => toast("EDØR — Place-based music & culture")} testId="setting-about" />
+        </Card>
+
+        <div className="mt-6">
+          <Button
+            variant="outline"
+            className="w-full h-14 rounded-2xl border-red-500/20 text-red-500 hover:bg-red-500/5 hover:text-red-400 font-bold tracking-widest uppercase text-xs gap-2"
+            onClick={handleSignOut}
+            data-testid="button-sign-out"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
+        </div>
 
         <p className="text-center text-[10px] text-white/20 uppercase font-bold tracking-[0.5em] mt-8">
           EDØR v1.0.4

@@ -2,6 +2,7 @@ import { PropsWithChildren } from "react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import { MiniPlayer } from "./mini-player";
+import { BottomNav } from "./bottom-nav";
 
 export default function Shell(
   props: PropsWithChildren<{ title?: string; right?: React.ReactNode }>,
@@ -9,7 +10,7 @@ export default function Shell(
   return (
     <div className="min-h-dvh edor-grid">
       <MiniPlayer />
-      <div className="mx-auto w-full max-w-md px-4 pb-10 pt-5">
+      <div className="mx-auto w-full max-w-md px-4 pb-24 pt-5">
         <header className="flex items-center justify-between">
           <Link
             href="/"
@@ -47,6 +48,7 @@ export default function Shell(
           <p data-testid="text-footer"></p>
         </footer>
       </div>
+      <BottomNav />
     </div>
   );
 }
