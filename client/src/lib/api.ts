@@ -114,8 +114,8 @@ export function useUnlock() {
 
 export function useDeleteLibraryItem() {
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await apiRequest("DELETE", `/api/library/${id}`);
+    mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
+      const res = await apiRequest("DELETE", `/api/library/${id}?userId=${userId}`);
       return res.json();
     },
     onSuccess: () => {

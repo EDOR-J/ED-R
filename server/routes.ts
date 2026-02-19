@@ -181,7 +181,9 @@ export async function registerRoutes(
   });
 
   app.delete("/api/library/:id", async (req, res) => {
-    const deleted = await storage.deleteLibraryItem(req.params.id);
+    const userId = req.query.userId as string | undefined;
+    if (!userId) return res.status(400).json({ error: "userId is required" });
+    const deleted = await storage.deleteLibraryItem(req.params.id, userId);
     if (!deleted) return res.status(404).json({ error: "Item not found" });
     res.json({ success: true });
   });

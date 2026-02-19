@@ -53,7 +53,7 @@ export interface IStorage {
   addToLibrary(item: InsertLibraryItem): Promise<LibraryItem>;
   getLibraryItemByContent(contentId: string, userId?: string): Promise<LibraryItem | undefined>;
   updateLibraryItem(id: string, patch: Partial<LibraryItem>): Promise<LibraryItem | undefined>;
-  deleteLibraryItem(id: string): Promise<boolean>;
+  deleteLibraryItem(id: string, userId: string): Promise<boolean>;
 
   // Friendships
   sendFriendRequest(data: InsertFriendship): Promise<Friendship>;
@@ -223,8 +223,8 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async deleteLibraryItem(id: string): Promise<boolean> {
-    const result = await db.delete(libraryItems).where(eq(libraryItems.id, id)).returning();
+  async deleteLibraryItem(id: string, userId: string): Promise<boolean> {
+    const result = await db.delete(libraryItems).where(and(eq(libraryItems.id, id), eq(libraryItems.userId, userId))).returning();
     return result.length > 0;
   }
 

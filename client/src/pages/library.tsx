@@ -1,10 +1,9 @@
 import Shell from "@/components/edor/shell";
 import { Button } from "@/components/ui/button";
 import { useLibrary, useDeleteLibraryItem, type ApiLibraryItem } from "@/lib/api";
-import { Music, Play, ArrowLeft, Clock, MapPin, MoreHorizontal, Trash2, Share2, Link2, ListPlus, MessageCircle, Copy } from "lucide-react";
+import { Music, Play, ArrowLeft, Clock, MapPin, MoreHorizontal, Trash2, Share2, Link2, ListPlus, MessageCircle } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { format } from "date-fns";
-import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,30 +24,54 @@ export default function LibraryPage() {
 
   const libraryItems: ApiLibraryItem[] = data || [];
 
+  const getUserId = () => localStorage.getItem("edor_user_id") || "";
+
   const handleDelete = (item: ApiLibraryItem) => {
-    deleteItem.mutate(item.id, {
+    const userId = getUserId();
+    if (!userId) return;
+    deleteItem.mutate({ id: item.id, userId }, {
       onSuccess: () => {
         toast({ title: "Removed", description: `${item.title} removed from library` });
       },
     });
   };
 
-  const handleCopyLink = (item: ApiLibraryItem) => {
-    const url = `${window.location.origin}/content/${item.contentId}`;
-    navigator.clipboard.writeText(url).then(() => {
-      toast({ title: "Link copied", description: "Track link copied to clipboard" });
-    });
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return true;
+    }
   };
 
-  const handleShareText = (item: ApiLibraryItem) => {
+  const handleCopyLink = async (item: ApiLibraryItem) => {
+    const url = `${window.location.origin}/content/${item.contentId}`;
+    await copyToClipboard(url);
+    toast({ title: "Link copied", description: "Track link copied to clipboard" });
+  };
+
+  const handleShareText = async (item: ApiLibraryItem) => {
     const text = `Check out "${item.title}" by ${item.artist} on EDØR`;
     const url = `${window.location.origin}/content/${item.contentId}`;
     if (navigator.share) {
-      navigator.share({ title: item.title, text, url }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(`${text}\n${url}`).then(() => {
+      try {
+        await navigator.share({ title: item.title, text, url });
+      } catch {
+        await copyToClipboard(`${text}\n${url}`);
         toast({ title: "Copied", description: "Share text copied to clipboard" });
-      });
+      }
+    } else {
+      await copyToClipboard(`${text}\n${url}`);
+      toast({ title: "Copied", description: "Share text copied to clipboard" });
     }
   };
 
