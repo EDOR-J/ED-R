@@ -17,15 +17,7 @@ import FriendsPage from "@/pages/social/friends";
 import ListenChatPage from "@/pages/social/listen-chat";
 
 function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any>; path?: string }) {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const { user } = useAuth();
 
   if (!user) {
     return <Redirect to="/login" />;

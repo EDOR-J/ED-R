@@ -79,8 +79,8 @@ export default function ProfilePage() {
   const [, setLocation] = useLocation();
   const { user, logout } = useAuth();
 
-  const displayName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Pulse User";
-  const email = user?.email || "";
+  const displayName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Guest";
+  const email = user?.email || "Guest access";
 
   const [notifyNearby, setNotifyNearby] = useState(true);
   const [notifyDrops, setNotifyDrops] = useState(true);

@@ -1,47 +1,64 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { User } from "@shared/models/auth";
+import { useState, useEffect, useCallback } from "react";
 
-async function fetchUser(): Promise<User | null> {
-  const response = await fetch("/api/auth/user", {
-    credentials: "include",
-  });
-
-  if (response.status === 401) {
-    return null;
-  }
-
-  if (!response.ok) {
-    throw new Error(`${response.status}: ${response.statusText}`);
-  }
-
-  return response.json();
+interface GuestUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  profileImageUrl: string | null;
 }
 
-async function logout(): Promise<void> {
-  window.location.href = "/api/logout";
+const STORAGE_KEY = "edor_guest_session";
+
+function getStoredUser(): GuestUser | null {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return null;
+  }
+}
+
+export function loginGuest() {
+  const guest: GuestUser = {
+    id: "guest-" + Date.now(),
+    firstName: "Guest",
+    lastName: "",
+    email: null,
+    profileImageUrl: null,
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(guest));
+  return guest;
+}
+
+export function logoutGuest() {
+  localStorage.removeItem(STORAGE_KEY);
 }
 
 export function useAuth() {
-  const queryClient = useQueryClient();
-  const { data: user, isLoading } = useQuery<User | null>({
-    queryKey: ["/api/auth/user"],
-    queryFn: fetchUser,
-    retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
+  const [user, setUser] = useState<GuestUser | null>(() => getStoredUser());
 
-  const logoutMutation = useMutation({
-    mutationFn: logout,
-    onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], null);
-    },
-  });
+  useEffect(() => {
+    const handler = () => {
+      setUser(getStoredUser());
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
+  const logout = useCallback(() => {
+    logoutGuest();
+    setUser(null);
+    window.location.href = "/login";
+  }, []);
 
   return {
     user,
-    isLoading,
+    isLoading: false,
     isAuthenticated: !!user,
-    logout: logoutMutation.mutate,
-    isLoggingOut: logoutMutation.isPending,
+    login: loginGuest,
+    logout,
+    isLoggingOut: false,
   };
 }
