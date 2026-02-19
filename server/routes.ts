@@ -180,6 +180,12 @@ export async function registerRoutes(
     res.json(items);
   });
 
+  app.delete("/api/library/:id", async (req, res) => {
+    const deleted = await storage.deleteLibraryItem(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Item not found" });
+    res.json({ success: true });
+  });
+
   // ── Friends ────────────────────────────────────────────
 
   app.get("/api/users/search", async (req, res) => {

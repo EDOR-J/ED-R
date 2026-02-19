@@ -112,6 +112,18 @@ export function useUnlock() {
   });
 }
 
+export function useDeleteLibraryItem() {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/library/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/library"] });
+    },
+  });
+}
+
 export function useCreateLocation() {
   return useMutation({
     mutationFn: async (data: Omit<ApiLocation, "id">) => {
