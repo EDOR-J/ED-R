@@ -271,3 +271,286 @@ export function pickContentForLocationMode(
   if (!c) return null;
   return { assignment: a, content: c };
 }
+
+// ── Social types ─────────────────────────────────────────
+
+export type ApiFriendship = {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  status: string;
+  createdAt: string;
+};
+
+export type ApiUserStatus = {
+  id: string;
+  userId: string;
+  displayName: string;
+  currentContentId: string | null;
+  currentContentTitle: string | null;
+  currentContentArtist: string | null;
+  statusText: string | null;
+  isOnline: boolean;
+  lastSeen: string;
+};
+
+export type ApiListenChat = {
+  id: string;
+  name: string;
+  contentId: string;
+  contentTitle: string;
+  contentArtist: string;
+  audioUrl: string;
+  createdBy: string;
+  isActive: boolean;
+  createdAt: string;
+  members?: ApiChatMember[];
+};
+
+export type ApiChatMember = {
+  id: string;
+  chatId: string;
+  userId: string;
+  displayName: string;
+  joinedAt: string;
+};
+
+export type ApiChatMessage = {
+  id: string;
+  chatId: string;
+  userId: string;
+  displayName: string;
+  message: string;
+  sentAt: string;
+};
+
+export type ApiSharedLibrary = {
+  friendId: string;
+  friendName: string;
+  sharedContent: Array<{
+    contentId: string;
+    title: string;
+    artist: string;
+    audioUrl: string;
+  }>;
+};
+
+export type ApiSearchUser = {
+  id: string;
+  username: string;
+  displayName: string | null;
+};
+
+// ── Social hooks ─────────────────────────────────────────
+
+export function useSearchUsers(query: string) {
+  return useQuery<ApiSearchUser[]>({
+    queryKey: ["/api/users/search", query],
+    queryFn: async () => {
+      if (!query || query.length < 2) return [];
+      const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
+      return res.json();
+    },
+    enabled: query.length >= 2,
+  });
+}
+
+export function useFriends(userId: string) {
+  return useQuery<ApiFriendship[]>({
+    queryKey: ["/api/friends", userId],
+    queryFn: async () => {
+      const res = await fetch(`/api/friends?userId=${userId}`);
+      return res.json();
+    },
+    enabled: !!userId,
+    staleTime: 10_000,
+  });
+}
+
+export function usePendingRequests(userId: string) {
+  return useQuery<ApiFriendship[]>({
+    queryKey: ["/api/friends/pending", userId],
+    queryFn: async () => {
+      const res = await fetch(`/api/friends/pending?userId=${userId}`);
+      return res.json();
+    },
+    enabled: !!userId,
+    staleTime: 10_000,
+  });
+}
+
+export function useFriendsStatuses(userId: string) {
+  return useQuery<ApiUserStatus[]>({
+    queryKey: ["/api/friends/statuses", userId],
+    queryFn: async () => {
+      const res = await fetch(`/api/friends/statuses?userId=${userId}`);
+      return res.json();
+    },
+    enabled: !!userId,
+    staleTime: 15_000,
+  });
+}
+
+export function useSharedLibrary(userId: string) {
+  return useQuery<ApiSharedLibrary[]>({
+    queryKey: ["/api/friends/shared-library", userId],
+    queryFn: async () => {
+      const res = await fetch(`/api/friends/shared-library?userId=${userId}`);
+      return res.json();
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+}
+
+export function useSendFriendRequest() {
+  return useMutation({
+    mutationFn: async (data: { senderId: string; receiverId: string }) => {
+      const res = await apiRequest("POST", "/api/friends/request", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/friends/pending"] });
+    },
+  });
+}
+
+export function useAcceptFriend() {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("PATCH", `/api/friends/${id}/accept`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/friends/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/friends/statuses"] });
+    },
+  });
+}
+
+export function useDeclineFriend() {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("PATCH", `/api/friends/${id}/decline`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/friends/pending"] });
+    },
+  });
+}
+
+export function useRemoveFriend() {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/friends/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/friends/statuses"] });
+    },
+  });
+}
+
+export function useUpdateStatus() {
+  return useMutation({
+    mutationFn: async (data: {
+      userId: string;
+      displayName: string;
+      currentContentId?: string;
+      currentContentTitle?: string;
+      currentContentArtist?: string;
+      statusText?: string;
+      isOnline?: boolean;
+    }) => {
+      const res = await apiRequest("PUT", "/api/status", data);
+      return res.json();
+    },
+  });
+}
+
+export function useActiveListenChats() {
+  return useQuery<ApiListenChat[]>({
+    queryKey: ["/api/listen-chats"],
+    staleTime: 10_000,
+  });
+}
+
+export function useListenChat(id: string) {
+  return useQuery<ApiListenChat>({
+    queryKey: ["/api/listen-chats", id],
+    queryFn: async () => {
+      const res = await fetch(`/api/listen-chats/${id}`);
+      return res.json();
+    },
+    enabled: !!id,
+    refetchInterval: 5000,
+  });
+}
+
+export function useChatMessages(chatId: string) {
+  return useQuery<ApiChatMessage[]>({
+    queryKey: ["/api/listen-chats", chatId, "messages"],
+    queryFn: async () => {
+      const res = await fetch(`/api/listen-chats/${chatId}/messages`);
+      return res.json();
+    },
+    enabled: !!chatId,
+    refetchInterval: 3000,
+  });
+}
+
+export function useCreateListenChat() {
+  return useMutation({
+    mutationFn: async (data: {
+      name: string;
+      contentId: string;
+      contentTitle: string;
+      contentArtist: string;
+      audioUrl: string;
+      createdBy: string;
+      displayName: string;
+    }) => {
+      const res = await apiRequest("POST", "/api/listen-chats", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/listen-chats"] });
+    },
+  });
+}
+
+export function useJoinListenChat() {
+  return useMutation({
+    mutationFn: async (data: { chatId: string; userId: string; displayName: string }) => {
+      const res = await apiRequest("POST", `/api/listen-chats/${data.chatId}/join`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/listen-chats"] });
+    },
+  });
+}
+
+export function useSendChatMessage() {
+  return useMutation({
+    mutationFn: async (data: { chatId: string; userId: string; displayName: string; message: string }) => {
+      const res = await apiRequest("POST", `/api/listen-chats/${data.chatId}/messages`, data);
+      return res.json();
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/listen-chats", vars.chatId, "messages"] });
+    },
+  });
+}
+
+export function useSeedSocial() {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/seed-social", {});
+      return res.json();
+    },
+  });
+}

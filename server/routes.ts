@@ -1,7 +1,12 @@
 import type { Express } from "express";
 import { type Server } from "http";
 import { storage } from "./storage";
-import { insertLocationSchema, insertContentSchema, insertAssignmentSchema, insertUnlockedSessionSchema, insertLibraryItemSchema } from "@shared/schema";
+import {
+  insertLocationSchema, insertContentSchema, insertAssignmentSchema,
+  insertUnlockedSessionSchema, insertLibraryItemSchema,
+  insertFriendshipSchema, insertUserStatusSchema,
+  insertListenChatSchema, insertListenChatMemberSchema, insertChatMessageSchema,
+} from "@shared/schema";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -175,6 +180,198 @@ export async function registerRoutes(
     res.json(items);
   });
 
+  // ── Friends ────────────────────────────────────────────
+
+  app.get("/api/users/search", async (req, res) => {
+    const q = req.query.q as string;
+    if (!q || q.length < 2) return res.json([]);
+    const results = await storage.searchUsers(q);
+    res.json(results.map(u => ({ id: u.id, username: u.username, displayName: u.displayName })));
+  });
+
+  app.post("/api/friends/request", async (req, res) => {
+    const parsed = insertFriendshipSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
+    const existing = await storage.getFriendship(parsed.data.senderId, parsed.data.receiverId);
+    if (existing) return res.status(409).json({ message: "Friend request already exists", friendship: existing });
+    const f = await storage.sendFriendRequest(parsed.data);
+    res.status(201).json(f);
+  });
+
+  app.get("/api/friends", async (req, res) => {
+    const userId = req.query.userId as string;
+    if (!userId) return res.status(400).json({ message: "userId required" });
+    const friends = await storage.getFriends(userId);
+    res.json(friends);
+  });
+
+  app.get("/api/friends/pending", async (req, res) => {
+    const userId = req.query.userId as string;
+    if (!userId) return res.status(400).json({ message: "userId required" });
+    const pending = await storage.getPendingRequests(userId);
+    res.json(pending);
+  });
+
+  app.get("/api/friends/sent", async (req, res) => {
+    const userId = req.query.userId as string;
+    if (!userId) return res.status(400).json({ message: "userId required" });
+    const sent = await storage.getSentRequests(userId);
+    res.json(sent);
+  });
+
+  app.patch("/api/friends/:id/accept", async (req, res) => {
+    const updated = await storage.updateFriendshipStatus(req.params.id, "accepted");
+    if (!updated) return res.status(404).json({ message: "Request not found" });
+    res.json(updated);
+  });
+
+  app.patch("/api/friends/:id/decline", async (req, res) => {
+    const updated = await storage.updateFriendshipStatus(req.params.id, "declined");
+    if (!updated) return res.status(404).json({ message: "Request not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/friends/:id", async (req, res) => {
+    await storage.deleteFriendship(req.params.id);
+    res.status(204).send();
+  });
+
+  // ── User Status ────────────────────────────────────────
+
+  app.get("/api/status/:userId", async (req, res) => {
+    const s = await storage.getStatus(req.params.userId);
+    res.json(s ?? null);
+  });
+
+  app.put("/api/status", async (req, res) => {
+    const parsed = insertUserStatusSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
+    const s = await storage.upsertStatus({ ...parsed.data, isOnline: req.body.isOnline });
+    res.json(s);
+  });
+
+  app.get("/api/friends/statuses", async (req, res) => {
+    const userId = req.query.userId as string;
+    if (!userId) return res.status(400).json({ message: "userId required" });
+    const friends = await storage.getFriends(userId);
+    const friendIds = friends.map(f => f.senderId === userId ? f.receiverId : f.senderId);
+    const statuses = await storage.getFriendsStatuses(friendIds);
+    res.json(statuses);
+  });
+
+  // ── Listen Chats ───────────────────────────────────────
+
+  app.post("/api/listen-chats", async (req, res) => {
+    const parsed = insertListenChatSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
+    const chat = await storage.createListenChat(parsed.data);
+    await storage.joinListenChat({
+      chatId: chat.id,
+      userId: parsed.data.createdBy,
+      displayName: req.body.displayName || "Host",
+    });
+    res.status(201).json(chat);
+  });
+
+  app.get("/api/listen-chats", async (req, res) => {
+    const userId = req.query.userId as string | undefined;
+    if (userId) {
+      const chats = await storage.getUserListenChats(userId);
+      return res.json(chats);
+    }
+    const chats = await storage.getActiveListenChats();
+    res.json(chats);
+  });
+
+  app.get("/api/listen-chats/:id", async (req, res) => {
+    const chat = await storage.getListenChat(req.params.id);
+    if (!chat) return res.status(404).json({ message: "Chat not found" });
+    const members = await storage.getListenChatMembers(req.params.id);
+    res.json({ ...chat, members });
+  });
+
+  app.post("/api/listen-chats/:id/join", async (req, res) => {
+    const chat = await storage.getListenChat(req.params.id);
+    if (!chat || !chat.isActive) return res.status(404).json({ message: "Chat not found or closed" });
+    const member = await storage.joinListenChat({
+      chatId: req.params.id,
+      userId: req.body.userId,
+      displayName: req.body.displayName || "Listener",
+    });
+    res.json(member);
+  });
+
+  app.post("/api/listen-chats/:id/leave", async (req, res) => {
+    await storage.leaveListenChat(req.params.id, req.body.userId);
+    res.status(204).send();
+  });
+
+  app.post("/api/listen-chats/:id/close", async (req, res) => {
+    await storage.closeListenChat(req.params.id);
+    res.status(204).send();
+  });
+
+  // ── Chat Messages ──────────────────────────────────────
+
+  app.get("/api/listen-chats/:id/messages", async (req, res) => {
+    const limit = parseInt(req.query.limit as string) || 50;
+    const messages = await storage.getMessages(req.params.id, limit);
+    res.json(messages.reverse());
+  });
+
+  app.post("/api/listen-chats/:id/messages", async (req, res) => {
+    const data = {
+      chatId: req.params.id,
+      userId: req.body.userId,
+      displayName: req.body.displayName || "Anonymous",
+      message: req.body.message,
+    };
+    const parsed = insertChatMessageSchema.safeParse(data);
+    if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
+    const msg = await storage.sendMessage(parsed.data);
+    res.status(201).json(msg);
+  });
+
+  // ── Shared Library (find friends with common songs) ──
+
+  app.get("/api/friends/shared-library", async (req, res) => {
+    const userId = req.query.userId as string;
+    if (!userId) return res.status(400).json({ message: "userId required" });
+
+    const friends = await storage.getFriends(userId);
+    const friendIds = friends.map(f => f.senderId === userId ? f.receiverId : f.senderId);
+    if (!friendIds.length) return res.json([]);
+
+    const myLibrary = await storage.getLibrary(userId);
+    const myContentIds = new Set(myLibrary.map(l => l.contentId));
+
+    const sharedItems: Array<{
+      friendId: string;
+      friendName: string;
+      sharedContent: Array<{ contentId: string; title: string; artist: string; audioUrl: string }>;
+    }> = [];
+
+    for (const fid of friendIds) {
+      const friendLibrary = await storage.getLibrary(fid);
+      const shared = friendLibrary.filter(l => myContentIds.has(l.contentId));
+      if (shared.length > 0) {
+        const status = await storage.getStatus(fid);
+        sharedItems.push({
+          friendId: fid,
+          friendName: status?.displayName || fid,
+          sharedContent: shared.map(s => ({
+            contentId: s.contentId,
+            title: s.title,
+            artist: s.artist,
+            audioUrl: s.audioUrl,
+          })),
+        });
+      }
+    }
+
+    res.json(sharedItems);
+  });
+
   // ── Seed endpoint (development only) ──────────────────
   app.post("/api/seed", async (_req, res) => {
     const existingLocs = await storage.getLocations();
@@ -212,6 +409,90 @@ export async function registerRoutes(
     ]);
 
     res.json({ message: "Seeded successfully", locations: locs.length, contents: conts.length });
+  });
+
+  // ── Seed social data (development only) ────────────────
+  app.post("/api/seed-social", async (_req, res) => {
+    const existingUsers = await storage.searchUsers("");
+    if (existingUsers.length >= 4) {
+      return res.json({ message: "Social data already seeded" });
+    }
+
+    const demoUsers = await Promise.all([
+      storage.createUser({ username: "maya_pulse", password: "demo123", displayName: "Maya Chen", phone: "" }),
+      storage.createUser({ username: "jax_vinyl", password: "demo123", displayName: "Jax Rivera", phone: "" }),
+      storage.createUser({ username: "luna_beats", password: "demo123", displayName: "Luna Park", phone: "" }),
+      storage.createUser({ username: "kai_drift", password: "demo123", displayName: "Kai Nakamura", phone: "" }),
+      storage.createUser({ username: "zoe_echo", password: "demo123", displayName: "Zoe Echo", phone: "" }),
+    ]);
+
+    const myUser = await storage.createUser({ username: "you", password: "demo123", displayName: "Pulse User", phone: "" });
+
+    await Promise.all([
+      storage.sendFriendRequest({ senderId: demoUsers[0].id, receiverId: myUser.id }),
+      storage.sendFriendRequest({ senderId: demoUsers[1].id, receiverId: myUser.id }),
+      storage.sendFriendRequest({ senderId: demoUsers[2].id, receiverId: myUser.id }),
+    ]);
+
+    const f1 = await storage.getFriendship(demoUsers[0].id, myUser.id);
+    const f2 = await storage.getFriendship(demoUsers[1].id, myUser.id);
+    if (f1) await storage.updateFriendshipStatus(f1.id, "accepted");
+    if (f2) await storage.updateFriendshipStatus(f2.id, "accepted");
+
+    const allContents = await storage.getContents();
+
+    await Promise.all([
+      storage.upsertStatus({
+        userId: demoUsers[0].id, displayName: "Maya Chen",
+        currentContentId: allContents[0]?.id, currentContentTitle: allContents[0]?.title,
+        currentContentArtist: allContents[0]?.creator, statusText: "Exploring Union Square vibes",
+      }),
+      storage.upsertStatus({
+        userId: demoUsers[1].id, displayName: "Jax Rivera",
+        currentContentId: allContents[1]?.id, currentContentTitle: allContents[1]?.title,
+        currentContentArtist: allContents[1]?.creator, statusText: "Night transit on repeat",
+      }),
+      storage.upsertStatus({
+        userId: demoUsers[2].id, displayName: "Luna Park",
+        statusText: "Looking for new drops",
+      }),
+      storage.upsertStatus({
+        userId: demoUsers[3].id, displayName: "Kai Nakamura",
+        currentContentId: allContents[2]?.id, currentContentTitle: allContents[2]?.title,
+        currentContentArtist: allContents[2]?.creator, statusText: "Drifting at the park",
+        isOnline: false,
+      }),
+      storage.upsertStatus({
+        userId: myUser.id, displayName: "Pulse User",
+        statusText: "Just started exploring",
+      }),
+    ]);
+
+    if (allContents.length >= 3) {
+      await Promise.all([
+        storage.addToLibrary({ userId: demoUsers[0].id, contentId: allContents[0].id, title: allContents[0].title, artist: allContents[0].creator, mode: "discover", nodeId: "seed", locationName: "Union Square", audioUrl: allContents[0].audioUrl, artworkUrl: "" }),
+        storage.addToLibrary({ userId: demoUsers[0].id, contentId: allContents[1].id, title: allContents[1].title, artist: allContents[1].creator, mode: "discover", nodeId: "seed", locationName: "Ferry Building", audioUrl: allContents[1].audioUrl, artworkUrl: "" }),
+        storage.addToLibrary({ userId: demoUsers[1].id, contentId: allContents[1].id, title: allContents[1].title, artist: allContents[1].creator, mode: "discover", nodeId: "seed", locationName: "Union Square", audioUrl: allContents[1].audioUrl, artworkUrl: "" }),
+        storage.addToLibrary({ userId: demoUsers[1].id, contentId: allContents[2].id, title: allContents[2].title, artist: allContents[2].creator, mode: "park", nodeId: "seed", locationName: "Dolores Park", audioUrl: allContents[2].audioUrl, artworkUrl: "" }),
+        storage.addToLibrary({ userId: myUser.id, contentId: allContents[0].id, title: allContents[0].title, artist: allContents[0].creator, mode: "discover", nodeId: "seed", locationName: "Union Square", audioUrl: allContents[0].audioUrl, artworkUrl: "" }),
+        storage.addToLibrary({ userId: myUser.id, contentId: allContents[1].id, title: allContents[1].title, artist: allContents[1].creator, mode: "discover", nodeId: "seed", locationName: "Ferry Building", audioUrl: allContents[1].audioUrl, artworkUrl: "" }),
+      ]);
+
+      const chat = await storage.createListenChat({
+        name: "Night Transit Session",
+        contentId: allContents[1].id,
+        contentTitle: allContents[1].title,
+        contentArtist: allContents[1].creator,
+        audioUrl: allContents[1].audioUrl,
+        createdBy: demoUsers[0].id,
+      });
+
+      await storage.joinListenChat({ chatId: chat.id, userId: demoUsers[1].id, displayName: "Jax Rivera" });
+      await storage.sendMessage({ chatId: chat.id, userId: demoUsers[0].id, displayName: "Maya Chen", message: "This track hits different at night" });
+      await storage.sendMessage({ chatId: chat.id, userId: demoUsers[1].id, displayName: "Jax Rivera", message: "Facts. The bass line is incredible" });
+    }
+
+    res.json({ message: "Social data seeded", users: demoUsers.length + 1, myUserId: myUser.id });
   });
 
   return httpServer;

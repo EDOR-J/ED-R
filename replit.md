@@ -46,16 +46,42 @@ All routes are in `server/routes.ts`:
 - `GET /api/unlocked-sessions` — List unlock history
 - `GET /api/library` — User's saved library of unlocked content
 - `POST /api/seed` — Seed database with demo data (development only)
+- `GET /api/users/search?q=` — Search users by username/displayName
+- `POST /api/friends/request` — Send friend request
+- `GET /api/friends?userId=` — List accepted friends
+- `GET /api/friends/pending?userId=` — Pending incoming requests
+- `GET /api/friends/sent?userId=` — Sent outgoing requests
+- `PATCH /api/friends/:id/accept` — Accept friend request
+- `PATCH /api/friends/:id/decline` — Decline friend request
+- `DELETE /api/friends/:id` — Remove friendship
+- `GET /api/status/:userId` — Get user listening status
+- `PUT /api/status` — Update user status (currently listening, online, etc.)
+- `GET /api/friends/statuses?userId=` — Get all friends' statuses
+- `GET /api/friends/shared-library?userId=` — Find friends with shared tracks
+- `POST /api/listen-chats` — Create a listen chat room
+- `GET /api/listen-chats` — Active listen chats (or filtered by userId)
+- `GET /api/listen-chats/:id` — Get chat with members
+- `POST /api/listen-chats/:id/join` — Join a listen chat
+- `POST /api/listen-chats/:id/leave` — Leave a listen chat
+- `POST /api/listen-chats/:id/close` — Close a listen chat
+- `GET /api/listen-chats/:id/messages` — Get chat messages
+- `POST /api/listen-chats/:id/messages` — Send a chat message
+- `POST /api/seed-social` — Seed demo social data (development only)
 
 ### Database
 - **ORM**: Drizzle ORM with PostgreSQL dialect
-- **Schema** (`shared/schema.ts`): Six tables:
+- **Schema** (`shared/schema.ts`): Eleven tables:
   - `users` — id, username, password, displayName, phone
   - `locations` — id, name, description, lat, lng, isPermanent
   - `contents` — id, title, creator, description, audioUrl, artworkSeed
   - `assignments` — id, locationId, mode, contentId, startAt, endAt, createdAt
   - `unlockedSessions` — id, userId, nodeId, contentId, mode, unlockedAt
   - `libraryItems` — id, userId, contentId, and additional metadata
+  - `friendships` — id, senderId, receiverId, status (pending/accepted/declined), createdAt
+  - `userStatus` — id, userId, displayName, currentContent info, statusText, isOnline, lastSeen
+  - `listenChats` — id, name, contentId/Title/Artist, audioUrl, createdBy, isActive
+  - `listenChatMembers` — id, chatId, userId, displayName, joinedAt
+  - `chatMessages` — id, chatId, userId, displayName, message, sentAt
 - **Migrations**: Drizzle Kit with `drizzle-kit push` for schema sync
 - **Connection**: `pg.Pool` via `DATABASE_URL` environment variable
 - **Validation**: drizzle-zod generates Zod schemas from Drizzle table definitions
@@ -70,6 +96,8 @@ All routes are in `server/routes.ts`:
 - `/content/:contentId` — Audio player with playback controls, circle launch
 - `/circle` — Listening Circle room (synchronized playback, QR sharing, chat-like UI)
 - `/library` — User's unlocked content collection
+- `/social` — Friends list, activity feed, friend requests, shared library discovery
+- `/listen-chat` — Listen Chat rooms (group listening with built-in chat for friends with shared tracks)
 - `/admin` — Admin panel (passcode-protected, manages locations/content/assignments)
 - `/login`, `/signup`, `/forgot-password`, `/profile` — Auth and profile pages
 

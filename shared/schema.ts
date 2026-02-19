@@ -64,6 +64,57 @@ export const libraryItems = pgTable("library_items", {
   artworkUrl: text("artwork_url").notNull().default(""),
 });
 
+// ── Social tables ──────────────────────────────────────
+
+export const friendships = pgTable("friendships", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  senderId: varchar("sender_id").notNull(),
+  receiverId: varchar("receiver_id").notNull(),
+  status: text("status").notNull().default("pending"), // "pending" | "accepted" | "declined"
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const userStatus = pgTable("user_status", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  currentContentId: varchar("current_content_id"),
+  currentContentTitle: text("current_content_title"),
+  currentContentArtist: text("current_content_artist"),
+  statusText: text("status_text"),
+  isOnline: boolean("is_online").notNull().default(false),
+  lastSeen: timestamp("last_seen").notNull().defaultNow(),
+});
+
+export const listenChats = pgTable("listen_chats", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  contentId: varchar("content_id").notNull(),
+  contentTitle: text("content_title").notNull(),
+  contentArtist: text("content_artist").notNull(),
+  audioUrl: text("audio_url").notNull(),
+  createdBy: varchar("created_by").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const listenChatMembers = pgTable("listen_chat_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatId: varchar("chat_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  displayName: text("display_name").notNull(),
+  joinedAt: timestamp("joined_at").notNull().defaultNow(),
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatId: varchar("chat_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  displayName: text("display_name").notNull(),
+  message: text("message").notNull(),
+  sentAt: timestamp("sent_at").notNull().defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertLocationSchema = createInsertSchema(locations).omit({ id: true });
@@ -71,6 +122,12 @@ export const insertContentSchema = createInsertSchema(contents).omit({ id: true 
 export const insertAssignmentSchema = createInsertSchema(assignments).omit({ id: true, createdAt: true });
 export const insertUnlockedSessionSchema = createInsertSchema(unlockedSessions).omit({ id: true, unlockedAt: true });
 export const insertLibraryItemSchema = createInsertSchema(libraryItems).omit({ id: true, unlockCount: true, lastUnlockedAt: true, unlockedAt: true });
+
+export const insertFriendshipSchema = createInsertSchema(friendships).omit({ id: true, createdAt: true, status: true });
+export const insertUserStatusSchema = createInsertSchema(userStatus).omit({ id: true, lastSeen: true, isOnline: true });
+export const insertListenChatSchema = createInsertSchema(listenChats).omit({ id: true, createdAt: true, isActive: true });
+export const insertListenChatMemberSchema = createInsertSchema(listenChatMembers).omit({ id: true, joinedAt: true });
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({ id: true, sentAt: true });
 
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -85,3 +142,14 @@ export type UnlockedSession = typeof unlockedSessions.$inferSelect;
 export type InsertUnlockedSession = z.infer<typeof insertUnlockedSessionSchema>;
 export type LibraryItem = typeof libraryItems.$inferSelect;
 export type InsertLibraryItem = z.infer<typeof insertLibraryItemSchema>;
+
+export type Friendship = typeof friendships.$inferSelect;
+export type InsertFriendship = z.infer<typeof insertFriendshipSchema>;
+export type UserStatus = typeof userStatus.$inferSelect;
+export type InsertUserStatus = z.infer<typeof insertUserStatusSchema>;
+export type ListenChat = typeof listenChats.$inferSelect;
+export type InsertListenChat = z.infer<typeof insertListenChatSchema>;
+export type ListenChatMember = typeof listenChatMembers.$inferSelect;
+export type InsertListenChatMember = z.infer<typeof insertListenChatMemberSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
