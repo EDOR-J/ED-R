@@ -18,42 +18,52 @@ function useQuery() {
 
 import { AnimatePresence, motion } from "framer-motion";
 
-function SparkleParticle({ id, onComplete }: { id: number; onComplete: (id: number) => void }) {
-  // Random start position around the center
+function IceCrystal({ id, onComplete }: { id: number; onComplete: (id: number) => void }) {
   const angle = Math.random() * 360;
-  const distance = 20 + Math.random() * 20; // Start slightly outside center
-  
-  // Random movement vector
-  const moveDistance = 60 + Math.random() * 50;
-  const duration = 0.5 + Math.random() * 0.5;
-  
+  const moveDistance = 50 + Math.random() * 60;
+  const duration = 0.6 + Math.random() * 0.6;
+  const size = 2 + Math.random() * 4;
+  const isFlake = Math.random() > 0.4;
+
   return (
     <motion.div
-      initial={{ 
-        opacity: 0, 
+      initial={{
+        opacity: 0,
         scale: 0,
-        x: "50%", 
+        x: "50%",
         y: "50%",
         rotate: Math.random() * 360
       }}
-      animate={{ 
-        opacity: [0, 1, 0],
-        scale: [0.5, 1.2, 0],
+      animate={{
+        opacity: [0, 0.9, 0],
+        scale: [0.3, 1.4, 0],
         x: `calc(50% + ${Math.cos(angle * (Math.PI / 180)) * moveDistance}px)`,
         y: `calc(50% + ${Math.sin(angle * (Math.PI / 180)) * moveDistance}px)`,
         rotate: Math.random() * 360 + 180
       }}
       transition={{ duration, ease: "easeOut" }}
       onAnimationComplete={() => onComplete(id)}
-      className="absolute top-0 left-0 w-3 h-3 pointer-events-none z-10"
+      className="absolute pointer-events-none z-10"
       style={{
         top: "50%",
         left: "50%",
-        marginTop: -6,
-        marginLeft: -6
+        marginTop: -(size / 2),
+        marginLeft: -(size / 2),
+        width: size,
+        height: size,
       }}
     >
-      <Sparkles className="w-full h-full text-amber-200 fill-amber-100/50" />
+      {isFlake ? (
+        <Sparkles className="w-full h-full text-blue-200 fill-blue-100/60 drop-shadow-[0_0_3px_rgba(180,220,255,0.6)]" />
+      ) : (
+        <div
+          className="w-full h-full rounded-full"
+          style={{
+            background: `radial-gradient(circle, rgba(220,240,255,0.9) 0%, rgba(180,220,255,0.4) 50%, transparent 100%)`,
+            boxShadow: `0 0 ${size}px rgba(180,220,255,0.5)`,
+          }}
+        />
+      )}
     </motion.div>
   );
 }
@@ -76,14 +86,14 @@ export default function HomePage() {
   const { data: drops, isLoading: dropsLoading } = useDrops();
   const q = useQuery();
 
-  // Pulse button interaction
   const [sparkleDuration, setSparkleDuration] = useState(2.5);
   const [isHolding, setIsHolding] = useState(false);
+  const [iceIntensity, setIceIntensity] = useState(0);
   const [particles, setParticles] = useState<number[]>([]);
   
-  // We use a ref for the interval to clear it easily
   const intervalRef = useState<{ current: NodeJS.Timeout | null }>({ current: null })[0];
   const particleIntervalRef = useState<{ current: NodeJS.Timeout | null }>({ current: null })[0];
+  const iceIntervalRef = useState<{ current: NodeJS.Timeout | null }>({ current: null })[0];
 
   const addParticle = () => {
     setParticles(prev => [...prev, Date.now() + Math.random()]);
@@ -97,38 +107,38 @@ export default function HomePage() {
     setIsHolding(true);
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (particleIntervalRef.current) clearInterval(particleIntervalRef.current);
+    if (iceIntervalRef.current) clearInterval(iceIntervalRef.current);
     
-    // Speed up shimmer
     intervalRef.current = setInterval(() => {
-      setSparkleDuration((prev) => Math.max(0.2, prev * 0.9)); // Accelerate
-    }, 100);
+      setSparkleDuration((prev) => Math.max(0.15, prev * 0.88));
+    }, 80);
 
-    // Spawn particles
-    addParticle(); // Immediate spawn
+    iceIntervalRef.current = setInterval(() => {
+      setIceIntensity((prev) => Math.min(1, prev + 0.06));
+    }, 60);
+
+    addParticle();
     particleIntervalRef.current = setInterval(() => {
       addParticle();
-      // Sometimes add two
-      if (Math.random() > 0.5) setTimeout(addParticle, 50);
-    }, 100);
+      if (Math.random() > 0.4) setTimeout(addParticle, 40);
+      if (Math.random() > 0.7) setTimeout(addParticle, 80);
+    }, 90);
   };
 
   const endHold = () => {
     setIsHolding(false);
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    if (particleIntervalRef.current) {
-      clearInterval(particleIntervalRef.current);
-      particleIntervalRef.current = null;
-    }
-    setSparkleDuration(2.5); // Reset
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    if (particleIntervalRef.current) { clearInterval(particleIntervalRef.current); particleIntervalRef.current = null; }
+    if (iceIntervalRef.current) { clearInterval(iceIntervalRef.current); iceIntervalRef.current = null; }
+    setSparkleDuration(2.5);
+    setIceIntensity(0);
   };
 
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (particleIntervalRef.current) clearInterval(particleIntervalRef.current);
+      if (iceIntervalRef.current) clearInterval(iceIntervalRef.current);
     };
   }, []);
 
@@ -237,19 +247,22 @@ export default function HomePage() {
         <div className="mt-5 relative">
           <AnimatePresence>
             {particles.map(id => (
-              <SparkleParticle key={id} id={id} onComplete={removeParticle} />
+              <IceCrystal key={id} id={id} onComplete={removeParticle} />
             ))}
           </AnimatePresence>
           <Button
             size="lg"
-            className="w-full rounded-2xl h-14 text-base font-semibold tracking-wide animate-sparkle transition-all duration-300 active:scale-[0.98] relative z-20"
+            className={`w-full rounded-2xl h-14 text-base font-semibold tracking-wide animate-sparkle transition-all duration-300 active:scale-[0.98] relative z-20 ${isHolding ? "pulse-btn-holding" : ""}`}
             onClick={() => setLocation("/pulse")}
             onMouseDown={startHold}
             onMouseUp={endHold}
             onMouseLeave={endHold}
             onTouchStart={startHold}
             onTouchEnd={endHold}
-            style={{ "--sparkle-duration": `${sparkleDuration}s` } as React.CSSProperties}
+            style={{
+              "--sparkle-duration": `${sparkleDuration}s`,
+              "--ice-intensity": `${iceIntensity}`,
+            } as React.CSSProperties}
             data-testid="button-pulse"
           >
             Pulse
