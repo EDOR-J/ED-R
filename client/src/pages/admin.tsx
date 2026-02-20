@@ -23,6 +23,7 @@ import {
 } from "@/lib/api";
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
+import { navigateWithTransition } from "@/hooks/use-view-transition";
 import { toast } from "sonner";
 import { BarChart3 } from "lucide-react";
 
@@ -86,7 +87,7 @@ export default function AdminPage() {
             <Button
               variant="secondary"
               className="h-12 rounded-2xl"
-              onClick={() => setLocation("/")}
+              onClick={() => navigateWithTransition(setLocation, "/")}
               data-testid="button-admin-back"
             >
               Back to Home

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Card } from "@/components/ui/card";
 import { Link, useLocation } from "wouter";
+import { navigateWithTransition } from "@/hooks/use-view-transition";
 import { usePulseData, useDrops, getNearestLocation } from "@/lib/api";
 import { loadSession, setMode, startRoom } from "@/lib/edorSession";
 import { useMemo, useState, useEffect } from "react";
@@ -155,7 +156,7 @@ export default function HomePage() {
 
         if (nearest && nearest.distanceMeters < 100) {
           startRoom(locId, joinId.split('-')[1]);
-          setLocation("/circle");
+          navigateWithTransition(setLocation, "/circle");
           toast.success(`Joined Circle at ${targetLoc.name}`);
         } else {
           toast.error("You must be at the location to join this Circle.");
@@ -258,7 +259,7 @@ export default function HomePage() {
           <Button
             size="lg"
             className={`w-full rounded-2xl h-14 text-base font-semibold tracking-wide animate-sparkle transition-all duration-300 active:scale-[0.98] relative z-20 ${isHolding ? "pulse-btn-holding" : ""}`}
-            onClick={() => setLocation("/pulse")}
+            onClick={() => navigateWithTransition(setLocation, "/pulse")}
             onMouseDown={startHold}
             onMouseUp={endHold}
             onMouseLeave={endHold}

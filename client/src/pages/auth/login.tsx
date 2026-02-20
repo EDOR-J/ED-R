@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { navigateWithTransition } from "@/hooks/use-view-transition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -24,7 +25,7 @@ export default function LoginPage() {
     if (name.toLowerCase() === "guest" && password === "edor") {
       loginGuest(selectedRole);
       toast.success("Welcome to EDØR");
-      setLocation("/");
+      navigateWithTransition(setLocation, "/");
     } else {
       toast.error("Invalid credentials");
     }

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useLibrary, useDeleteLibraryItem, type ApiLibraryItem } from "@/lib/api";
 import { Music, Play, ArrowLeft, Clock, MapPin, MoreHorizontal, Trash2, Share2, Link2, ListPlus, MessageCircle } from "lucide-react";
 import { useLocation, Link } from "wouter";
+import { navigateWithTransition } from "@/hooks/use-view-transition";
 import { format } from "date-fns";
 import {
   DropdownMenu,
@@ -148,7 +149,7 @@ export default function LibraryPage() {
               >
                 <div
                   className="h-11 w-11 rounded-xl border border-white/8 bg-gradient-to-br from-white/8 to-white/3 flex items-center justify-center shrink-0 cursor-pointer active:scale-95 transition-transform"
-                  onClick={() => setLocation(`/content/${item.contentId}?loc=${item.nodeId}`)}
+                  onClick={() => navigateWithTransition(setLocation, `/content/${item.contentId}?loc=${item.nodeId}`)}
                   data-testid={`button-play-${item.id}`}
                 >
                   <Play className="h-3.5 w-3.5 text-primary fill-primary" />
@@ -156,7 +157,7 @@ export default function LibraryPage() {
 
                 <div
                   className="flex-1 min-w-0 cursor-pointer"
-                  onClick={() => setLocation(`/content/${item.contentId}?loc=${item.nodeId}`)}
+                  onClick={() => navigateWithTransition(setLocation, `/content/${item.contentId}?loc=${item.nodeId}`)}
                 >
                   <h3 className="text-[13px] font-semibold text-white truncate leading-tight" data-testid={`text-track-title-${item.id}`}>
                     {item.title}

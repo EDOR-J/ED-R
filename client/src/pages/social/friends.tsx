@@ -20,6 +20,7 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
+import { navigateWithTransition } from "@/hooks/use-view-transition";
 import {
   Search,
   UserPlus,
@@ -163,13 +164,13 @@ export default function FriendsPage() {
 
   const handleListenChat = (status: ApiUserStatus) => {
     if (status.currentContentId) {
-      setLocation(`/listen-chat?friendId=${status.userId}&contentId=${status.currentContentId}`);
+      navigateWithTransition(setLocation, `/listen-chat?friendId=${status.userId}&contentId=${status.currentContentId}`);
     }
   };
 
   const handleStartSharedChat = (item: ApiSharedLibrary) => {
     if (item.sharedContent.length > 0) {
-      setLocation(`/listen-chat?friendId=${item.friendId}&contentId=${item.sharedContent[0].contentId}`);
+      navigateWithTransition(setLocation, `/listen-chat?friendId=${item.friendId}&contentId=${item.sharedContent[0].contentId}`);
     }
   };
 

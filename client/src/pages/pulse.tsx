@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { navigateWithTransition } from "@/hooks/use-view-transition";
 import { usePulseData, useUnlock, getNearestLocation, pickContentForLocationMode, type ApiLocation, type ApiContent, type PulseMode } from "@/lib/api";
 import { loadSession, setSelectedLocation } from "@/lib/edorSession";
 import { MapPin, ShieldAlert, X, Music, Headphones } from "lucide-react";
@@ -249,7 +250,7 @@ export default function PulsePage() {
       localStorage.setItem("edor:pulse:session:v1", JSON.stringify(next));
       
       toast.success(`Joined Circle at ${location.name}`);
-      setLocation("/circle");
+      navigateWithTransition(setLocation, "/circle");
     }
   }, [joinRoomId, joinLocId, userCoords, locations, setLocation]);
 
@@ -300,7 +301,7 @@ export default function PulsePage() {
   const handleRevealContinue = useCallback(() => {
     if (!unlockReveal) return;
     setUnlockReveal(null);
-    setLocation(`/content/${unlockReveal.content.id}?loc=${unlockReveal.locationId}&mode=${session.mode}`);
+    navigateWithTransition(setLocation, `/content/${unlockReveal.content.id}?loc=${unlockReveal.locationId}&mode=${session.mode}`);
   }, [unlockReveal, setLocation, session.mode]);
 
   async function continueWith(locationId: string) {

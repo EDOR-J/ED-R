@@ -18,7 +18,8 @@ Preferred communication style: Simple, everyday language.
 - **State/Data Fetching**: TanStack React Query for server state management
 - **UI Components**: shadcn/ui component library built on Radix UI primitives
 - **Styling**: Tailwind CSS v4 (using `@tailwindcss/vite` plugin), dark theme by default (black background with amber/gold primary color)
-- **Animations**: Framer Motion for transitions and particle effects
+- **Animations**: Framer Motion for transitions and particle effects; View Transitions API for smooth cross-page navigation animations
+- **View Transitions**: `client/src/hooks/use-view-transition.ts` provides `useViewTransitionNavigate` hook and `navigateWithTransition` helper wrapping `document.startViewTransition()`. CSS keyframes in `index.css` define fade+slide animations for the `page` view-transition-name, while `nav-bar` and `mini-player` persist without animation across transitions.
 - **Fonts**: Geist (sans-serif) and Libre Baskerville (serif) from Google Fonts
 - **Maps**: pigeon-maps for location visualization on the Pulse page
 - **QR Codes**: qrcode.react for Listening Circle sharing

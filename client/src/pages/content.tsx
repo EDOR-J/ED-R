@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
+import { navigateWithTransition } from "@/hooks/use-view-transition";
 import { usePulseData } from "@/lib/api";
 import { loadSession, setLastContentId, getLatestSession, startRoom } from "@/lib/edorSession";
 import { Pause, Play, SkipBack, Users } from "lucide-react";
@@ -48,14 +49,14 @@ export default function ContentPage() {
   function handleStartCircle() {
     if (locId && contentId) {
       startRoom(locId, contentId);
-      setLocation("/circle");
+      navigateWithTransition(setLocation, "/circle");
     }
   }
 
   function handleJoinCircle() {
     if (locId && contentId) {
       startRoom(locId, contentId); // In mockup, join also creates if needed
-      setLocation("/circle");
+      navigateWithTransition(setLocation, "/circle");
     }
   }
 
@@ -110,7 +111,7 @@ export default function ContentPage() {
           </p>
           <Button
             className="mt-3 w-full rounded-2xl"
-            onClick={() => setLocation("/")}
+            onClick={() => navigateWithTransition(setLocation, "/")}
             data-testid="button-back-home"
           >
             Back to Home
@@ -222,7 +223,7 @@ export default function ContentPage() {
                 el.currentTime = 0;
               }
               setPlaying(false);
-              setLocation("/");
+              navigateWithTransition(setLocation, "/");
             }}
             data-testid="button-next-pulse"
           >

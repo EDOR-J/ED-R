@@ -18,6 +18,7 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, useSearch } from "wouter";
+import { navigateWithTransition } from "@/hooks/use-view-transition";
 import {
   Play,
   Pause,
@@ -141,7 +142,7 @@ function ListenChatRoom({ chatId }: { chatId: string }) {
             size="icon"
             variant="ghost"
             className="h-9 w-9 rounded-xl"
-            onClick={() => setLocation("/social")}
+            onClick={() => navigateWithTransition(setLocation, "/social")}
             data-testid="button-back"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -255,7 +256,7 @@ export default function ListenChatPage() {
           displayName,
         }, {
           onSuccess: (chat) => {
-            setLocation(`/listen-chat?chatId=${chat.id}`, { replace: true });
+            navigateWithTransition(setLocation, `/listen-chat?chatId=${chat.id}`, { replace: true });
           },
         });
       }
@@ -275,7 +276,7 @@ export default function ListenChatPage() {
               size="icon"
               variant="ghost"
               className="h-9 w-9 rounded-xl"
-              onClick={() => setLocation("/social")}
+              onClick={() => navigateWithTransition(setLocation, "/social")}
               data-testid="button-back-to-social"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -293,7 +294,7 @@ export default function ListenChatPage() {
               <ActiveChatCard
                 key={chat.id}
                 chat={chat}
-                onClick={() => setLocation(`/listen-chat?chatId=${chat.id}`)}
+                onClick={() => navigateWithTransition(setLocation, `/listen-chat?chatId=${chat.id}`)}
               />
             ))}
           </div>
@@ -309,7 +310,7 @@ export default function ListenChatPage() {
             <Button
               variant="outline"
               className="h-11 px-6 rounded-2xl border-white/10 text-white/60 gap-2"
-              onClick={() => setLocation("/social")}
+              onClick={() => navigateWithTransition(setLocation, "/social")}
               data-testid="button-go-to-friends"
             >
               <Users className="h-4 w-4" /> Browse Friends

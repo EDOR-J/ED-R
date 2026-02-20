@@ -7,6 +7,7 @@ import { MessageSquare, Users, X, Clock, QrCode, Play, Pause, Disc } from "lucid
 import { QRCodeSVG } from "qrcode.react";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
+import { navigateWithTransition } from "@/hooks/use-view-transition";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { updateRoomEvent, type RoomEvent, blockUser, reportUser } from "@/lib/edorSession";
@@ -36,7 +37,7 @@ export default function CircleRoom() {
 
   useEffect(() => {
     if (!room) {
-      setLocation("/");
+      navigateWithTransition(setLocation, "/");
       return;
     }
 
@@ -152,9 +153,9 @@ export default function CircleRoom() {
     
     endRoom();
     if (content) {
-      setLocation(`/content/${content.id}?loc=${location?.id}&roomEnd=1`);
+      navigateWithTransition(setLocation, `/content/${content.id}?loc=${location?.id}&roomEnd=1`);
     } else {
-      setLocation("/");
+      navigateWithTransition(setLocation, "/");
     }
   }
 

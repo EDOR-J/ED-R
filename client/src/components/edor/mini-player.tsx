@@ -41,7 +41,7 @@ export function MiniPlayer() {
   if (!currentContent) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col items-end gap-2">
+    <div className="fixed top-4 right-4 z-50 flex flex-col items-end gap-2" style={{ viewTransitionName: "mini-player" } as React.CSSProperties}>
       <audio ref={audioRef} src={currentContent.audioUrl} loop />
       
       <AnimatePresence mode="wait">
