@@ -3,13 +3,171 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { usePulseData, useUnlock, getNearestLocation, pickContentForLocationMode, type ApiLocation, type PulseMode } from "@/lib/api";
+import { usePulseData, useUnlock, getNearestLocation, pickContentForLocationMode, type ApiLocation, type ApiContent, type PulseMode } from "@/lib/api";
 import { loadSession, setSelectedLocation } from "@/lib/edorSession";
-import { MapPin, ShieldAlert, X } from "lucide-react";
+import { MapPin, ShieldAlert, X, Music, Headphones } from "lucide-react";
 import { Map, Marker, Overlay } from "pigeon-maps";
 import { motion, AnimatePresence } from "framer-motion";
+
+function triggerHeartbeatVibration() {
+  if (navigator.vibrate) {
+    navigator.vibrate([100, 50, 100]);
+  }
+}
+
+function UnlockReveal({
+  content,
+  locationName,
+  onContinue,
+}: {
+  content: ApiContent;
+  locationName: string;
+  onContinue: () => void;
+}) {
+  useEffect(() => {
+    const timer = setTimeout(onContinue, 4000);
+    return () => clearTimeout(timer);
+  }, [onContinue]);
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.4 }}
+      data-testid="overlay-unlock-reveal"
+    >
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 24 }).map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 rounded-full bg-amber-400/60"
+            style={{
+              left: `${50 + (Math.random() - 0.5) * 60}%`,
+              top: `${50 + (Math.random() - 0.5) * 60}%`,
+            }}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{
+              opacity: [0, 1, 0],
+              scale: [0, 1.5, 0],
+              x: (Math.random() - 0.5) * 200,
+              y: (Math.random() - 0.5) * 200,
+            }}
+            transition={{
+              duration: 2,
+              delay: 0.3 + Math.random() * 0.8,
+              ease: "easeOut",
+            }}
+          />
+        ))}
+      </div>
+
+      <motion.div
+        className="flex flex-col items-center text-center px-8 max-w-sm"
+        initial={{ scale: 0.6, opacity: 0, y: 30 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.15, type: "spring", damping: 15 }}
+      >
+        <motion.div
+          className="relative w-32 h-32 rounded-3xl overflow-hidden border-2 border-amber-400/40 shadow-2xl shadow-amber-500/20 mb-6"
+          initial={{ rotate: -8 }}
+          animate={{ rotate: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <div
+            className="w-full h-full flex items-center justify-center"
+            style={{
+              background: content.artworkSeed
+                ? `linear-gradient(135deg, hsl(${parseInt(content.artworkSeed, 36) % 360}, 70%, 25%), hsl(${(parseInt(content.artworkSeed, 36) + 60) % 360}, 60%, 15%))`
+                : "linear-gradient(135deg, hsl(40, 70%, 25%), hsl(20, 60%, 15%))",
+            }}
+          >
+            <Music className="h-12 w-12 text-white/50" />
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="flex items-center gap-2 mb-3"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <motion.div
+            className="w-2 h-2 rounded-full bg-amber-400"
+            animate={{ scale: [1, 1.4, 1] }}
+            transition={{ duration: 0.6, repeat: 2, delay: 0.5 }}
+          />
+          <span className="text-xs uppercase tracking-[0.25em] text-amber-400 font-semibold">
+            Content Unlocked
+          </span>
+          <motion.div
+            className="w-2 h-2 rounded-full bg-amber-400"
+            animate={{ scale: [1, 1.4, 1] }}
+            transition={{ duration: 0.6, repeat: 2, delay: 0.7 }}
+          />
+        </motion.div>
+
+        <motion.h2
+          className="text-2xl font-bold text-white"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65 }}
+          data-testid="text-unlocked-title"
+        >
+          {content.title}
+        </motion.h2>
+
+        <motion.p
+          className="text-sm text-white/60 mt-1"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          data-testid="text-unlocked-creator"
+        >
+          {content.creator}
+        </motion.p>
+
+        <motion.p
+          className="text-xs text-white/40 mt-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.9 }}
+        >
+          <MapPin className="inline h-3 w-3 mr-1" />
+          {locationName}
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2 }}
+          className="mt-6"
+        >
+          <Button
+            className="h-11 px-8 rounded-2xl animate-sparkle"
+            onClick={onContinue}
+            data-testid="button-listen-now"
+          >
+            <Headphones className="h-4 w-4 mr-2" />
+            Listen Now
+          </Button>
+        </motion.div>
+
+        <motion.p
+          className="text-[10px] text-white/30 mt-3"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+        >
+          Auto-continuing in a moment…
+        </motion.p>
+      </motion.div>
+    </motion.div>
+  );
+}
 
 type Status =
   | { state: "asking" }
@@ -29,6 +187,7 @@ export default function PulsePage() {
   const [manualLocationId, setManualLocationId] = useState<string>("");
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
   const [activeLocation, setActiveLocation] = useState<ApiLocation | null>(null);
+  const [unlockReveal, setUnlockReveal] = useState<{ content: ApiContent; locationName: string; locationId: string } | null>(null);
 
   useEffect(() => {
     if (locations.length > 0 && !manualLocationId) {
@@ -138,6 +297,12 @@ export default function PulsePage() {
 
   const center = userCoords || [37.7749, -122.4194];
 
+  const handleRevealContinue = useCallback(() => {
+    if (!unlockReveal) return;
+    setUnlockReveal(null);
+    setLocation(`/content/${unlockReveal.content.id}?loc=${unlockReveal.locationId}&mode=${session.mode}`);
+  }, [unlockReveal, setLocation, session.mode]);
+
   async function continueWith(locationId: string) {
     if (!data) return;
 
@@ -165,7 +330,12 @@ export default function PulsePage() {
       // continue to content even if unlock fails
     }
 
-    setLocation(`/content/${picked.content.id}?loc=${locationId}&mode=${session.mode}`);
+    triggerHeartbeatVibration();
+    setUnlockReveal({
+      content: picked.content,
+      locationName: location?.name ?? "Unknown Location",
+      locationId,
+    });
   }
 
   if (isLoading) {
@@ -320,6 +490,16 @@ export default function PulsePage() {
           </div>
         )}
       </Card>
+
+      <AnimatePresence>
+        {unlockReveal && (
+          <UnlockReveal
+            content={unlockReveal.content}
+            locationName={unlockReveal.locationName}
+            onContinue={handleRevealContinue}
+          />
+        )}
+      </AnimatePresence>
     </Shell>
   );
 }
