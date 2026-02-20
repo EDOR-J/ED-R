@@ -384,6 +384,110 @@ export async function registerRoutes(
     res.json(sharedItems);
   });
 
+  // ── Analytics ────────────────────────────────────────
+  app.get("/api/analytics", async (_req, res) => {
+    const [allUnlocks, allLibrary, allContents, allLocations, allAssignments] = await Promise.all([
+      storage.getUnlockedSessions(),
+      storage.getLibrary(),
+      storage.getContents(),
+      storage.getLocations(),
+      storage.getAssignments(),
+    ]);
+
+    const now = new Date();
+    const dayMs = 86400000;
+
+    const unlocksByNode: Record<string, { name: string; total: number; today: number; thisWeek: number }> = {};
+    for (const loc of allLocations) {
+      unlocksByNode[loc.id] = { name: loc.name, total: 0, today: 0, thisWeek: 0 };
+    }
+    for (const u of allUnlocks) {
+      const entry = unlocksByNode[u.nodeId];
+      if (entry) {
+        entry.total++;
+        const age = now.getTime() - new Date(u.unlockedAt).getTime();
+        if (age < dayMs) entry.today++;
+        if (age < dayMs * 7) entry.thisWeek++;
+      }
+    }
+
+    const unlocksByContent: Record<string, { title: string; creator: string; total: number }> = {};
+    for (const c of allContents) {
+      unlocksByContent[c.id] = { title: c.title, creator: c.creator, total: 0 };
+    }
+    for (const u of allUnlocks) {
+      const entry = unlocksByContent[u.contentId];
+      if (entry) entry.total++;
+    }
+
+    const hourBuckets: number[] = new Array(24).fill(0);
+    const dayBuckets: number[] = new Array(7).fill(0);
+    const last7Days: { date: string; unlocks: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * dayMs);
+      const label = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+      last7Days.push({ date: label, unlocks: 0 });
+    }
+
+    for (const u of allUnlocks) {
+      const d = new Date(u.unlockedAt);
+      hourBuckets[d.getHours()]++;
+      const dayDiff = Math.floor((now.getTime() - d.getTime()) / dayMs);
+      if (dayDiff < 7) {
+        dayBuckets[6 - dayDiff]++;
+        last7Days[6 - dayDiff].unlocks++;
+      }
+    }
+
+    const hourlyData = hourBuckets.map((count, h) => ({
+      hour: `${h.toString().padStart(2, "0")}:00`,
+      unlocks: count,
+    }));
+
+    const uniqueUsers = new Set(allUnlocks.map(u => u.userId).filter(Boolean));
+    const uniqueUsersToday = new Set(
+      allUnlocks.filter(u => now.getTime() - new Date(u.unlockedAt).getTime() < dayMs).map(u => u.userId).filter(Boolean)
+    );
+
+    const modeBreakdown = { discover: 0, park: 0 };
+    for (const u of allUnlocks) {
+      if (u.mode === "discover") modeBreakdown.discover++;
+      else if (u.mode === "park") modeBreakdown.park++;
+    }
+
+    const topSongs = Object.entries(unlocksByContent)
+      .map(([id, data]) => ({ id, ...data }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+
+    const nodeStats = Object.entries(unlocksByNode)
+      .map(([id, data]) => ({ id, ...data }))
+      .sort((a, b) => b.total - a.total);
+
+    res.json({
+      overview: {
+        totalUnlocks: allUnlocks.length,
+        totalContent: allContents.length,
+        totalLocations: allLocations.length,
+        totalActiveAssignments: allAssignments.filter(a => {
+          const s = new Date(a.startAt).getTime();
+          const e = new Date(a.endAt).getTime();
+          return now.getTime() >= s && now.getTime() <= e;
+        }).length,
+        totalLibraryItems: allLibrary.length,
+        uniqueUsers: uniqueUsers.size,
+        uniqueUsersToday: uniqueUsersToday.size,
+        unlocksToday: allUnlocks.filter(u => now.getTime() - new Date(u.unlockedAt).getTime() < dayMs).length,
+        unlocksThisWeek: allUnlocks.filter(u => now.getTime() - new Date(u.unlockedAt).getTime() < dayMs * 7).length,
+      },
+      modeBreakdown,
+      hourlyData,
+      last7Days,
+      topSongs,
+      nodeStats,
+    });
+  });
+
   // ── Seed endpoint (development only) ──────────────────
   app.post("/api/seed", async (_req, res) => {
     const existingLocs = await storage.getLocations();

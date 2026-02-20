@@ -22,8 +22,9 @@ import {
   type PulseMode,
 } from "@/lib/api";
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { toast } from "sonner";
+import { BarChart3 } from "lucide-react";
 
 const PASSCODE_KEY = "edor:admin:ok:v1";
 const PASSCODE = "edor";
@@ -120,6 +121,20 @@ export default function AdminPage() {
       {(locLoading || conLoading || asnLoading) ? (
         <p className="text-sm text-white/60 text-center py-8" data-testid="text-admin-loading">Loading…</p>
       ) : (
+      <>
+      <Link href="/admin/analytics" data-testid="link-admin-analytics">
+        <Card className="glass rounded-2xl p-4 mb-4 flex items-center gap-3 hover:bg-white/[0.04] transition cursor-pointer group">
+          <div className="h-9 w-9 rounded-xl bg-amber-400/10 flex items-center justify-center">
+            <BarChart3 className="h-4 w-4 text-amber-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-white">Analytics Dashboard</p>
+            <p className="text-[10px] text-white/40">Unlock rates, top tracks, node performance</p>
+          </div>
+          <span className="text-xs text-white/30 group-hover:text-white/50 transition">→</span>
+        </Card>
+      </Link>
+
       <Tabs defaultValue="locations" className="w-full">
         <TabsList className="grid w-full grid-cols-3 rounded-2xl bg-white/5" data-testid="tabs-admin">
           <TabsTrigger value="locations" className="rounded-xl" data-testid="tab-locations">
@@ -189,6 +204,7 @@ export default function AdminPage() {
           />
         </TabsContent>
       </Tabs>
+      </>
       )}
 
       <Card className="mt-6 glass rounded-3xl p-4" data-testid="card-admin-note">

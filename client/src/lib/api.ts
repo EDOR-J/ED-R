@@ -560,6 +560,33 @@ export function useSendChatMessage() {
   });
 }
 
+export type AnalyticsData = {
+  overview: {
+    totalUnlocks: number;
+    totalContent: number;
+    totalLocations: number;
+    totalActiveAssignments: number;
+    totalLibraryItems: number;
+    uniqueUsers: number;
+    uniqueUsersToday: number;
+    unlocksToday: number;
+    unlocksThisWeek: number;
+  };
+  modeBreakdown: { discover: number; park: number };
+  hourlyData: Array<{ hour: string; unlocks: number }>;
+  last7Days: Array<{ date: string; unlocks: number }>;
+  topSongs: Array<{ id: string; title: string; creator: string; total: number }>;
+  nodeStats: Array<{ id: string; name: string; total: number; today: number; thisWeek: number }>;
+};
+
+export function useAnalytics() {
+  return useQuery<AnalyticsData>({
+    queryKey: ["/api/analytics"],
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
+}
+
 export function useSeedSocial() {
   return useMutation({
     mutationFn: async () => {

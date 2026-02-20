@@ -17,6 +17,7 @@ import FriendsPage from "@/pages/social/friends";
 import ListenChatPage from "@/pages/social/listen-chat";
 import UploadPage from "./pages/upload";
 import ArtistDashboard from "./pages/artist-dashboard";
+import AdminAnalytics from "./pages/admin-analytics";
 
 function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any>; path?: string }) {
   const { user } = useAuth();
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/pulse">{() => <ProtectedRoute component={PulsePage} />}</Route>
       <Route path="/content/:contentId">{(params) => <ProtectedRoute component={ContentPage} {...params} />}</Route>
       <Route path="/admin">{() => <RoleRoute component={AdminPage} allowedRoles={["admin"]} />}</Route>
+      <Route path="/admin/analytics">{() => <RoleRoute component={AdminAnalytics} allowedRoles={["admin"]} />}</Route>
       <Route path="/circle">{() => <ProtectedRoute component={CircleRoom} />}</Route>
       <Route path="/library">{() => <ProtectedRoute component={LibraryPage} />}</Route>
       <Route path="/profile">{() => <ProtectedRoute component={ProfilePage} />}</Route>
