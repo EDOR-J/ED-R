@@ -4,18 +4,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Zap, Lock, User } from "lucide-react";
-import { loginGuest } from "@/hooks/use-auth";
+import { Zap, Lock, User, Shield, Mic2, UserCircle } from "lucide-react";
+import { loginGuest, type UserRole } from "@/hooks/use-auth";
+
+const roles: { value: UserRole; label: string; icon: React.ElementType; desc: string }[] = [
+  { value: "user", label: "Listener", icon: UserCircle, desc: "Discover & collect music" },
+  { value: "artist", label: "Artist", icon: Mic2, desc: "Upload & track your content" },
+  { value: "admin", label: "Admin", icon: Shield, desc: "Full platform management" },
+];
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [selectedRole, setSelectedRole] = useState<UserRole>("user");
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.toLowerCase() === "guest" && password === "edor") {
-      loginGuest();
+      loginGuest(selectedRole);
       toast.success("Welcome to EDØR");
       setLocation("/");
     } else {
@@ -65,6 +72,33 @@ export default function LoginPage() {
                   data-testid="input-password"
                 />
                 <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest ml-1">Profile Type</p>
+              <div className="grid grid-cols-3 gap-2">
+                {roles.map((r) => {
+                  const Icon = r.icon;
+                  const active = selectedRole === r.value;
+                  return (
+                    <button
+                      key={r.value}
+                      type="button"
+                      onClick={() => setSelectedRole(r.value)}
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border transition-all ${
+                        active
+                          ? "border-primary/50 bg-primary/10 text-white"
+                          : "border-white/10 bg-white/[0.03] text-white/50 hover:border-white/20 hover:text-white/70"
+                      }`}
+                      data-testid={`role-${r.value}`}
+                    >
+                      <Icon className={`h-5 w-5 ${active ? "text-primary" : ""}`} />
+                      <span className="text-xs font-bold">{r.label}</span>
+                      <span className="text-[9px] leading-tight opacity-60">{r.desc}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

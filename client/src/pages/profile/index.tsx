@@ -24,6 +24,8 @@ import {
   FileText,
   HelpCircle,
   Info,
+  Mic2,
+  UserCircle,
 } from "lucide-react";
 
 function SettingsRow({
@@ -75,12 +77,21 @@ function SectionHeader({ label }: { label: string }) {
   );
 }
 
+const roleConfig = {
+  admin: { label: "Admin", icon: Shield, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20" },
+  artist: { label: "Artist", icon: Mic2, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+  user: { label: "Listener", icon: UserCircle, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+} as const;
+
 export default function ProfilePage() {
   const [, setLocation] = useLocation();
   const { user, logout } = useAuth();
 
   const displayName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Guest";
   const email = user?.email || "Guest access";
+  const role = user?.role ?? "user";
+  const rc = roleConfig[role];
+  const RoleIcon = rc.icon;
 
   const [notifyNearby, setNotifyNearby] = useState(true);
   const [notifyDrops, setNotifyDrops] = useState(true);
@@ -111,7 +122,13 @@ export default function ProfilePage() {
           </div>
           <div>
             <h2 className="text-2xl font-bold text-white font-serif" data-testid="text-display-name">{displayName}</h2>
-            <p className="text-xs text-white/40 font-bold uppercase tracking-widest mt-1 flex items-center gap-2">
+            <div className="flex items-center gap-2 mt-1">
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${rc.bg} ${rc.color} ${rc.border}`} data-testid="badge-role">
+                <RoleIcon className="h-3 w-3" />
+                {rc.label}
+              </span>
+            </div>
+            <p className="text-xs text-white/40 mt-1 flex items-center gap-2">
               <Mail className="h-3 w-3" /> {email}
             </p>
           </div>

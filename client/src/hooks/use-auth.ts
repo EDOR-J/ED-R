@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 
+export type UserRole = "admin" | "artist" | "user";
+
 interface GuestUser {
   id: string;
   firstName: string;
   lastName: string;
   email: string | null;
   profileImageUrl: string | null;
+  role: UserRole;
 }
 
 const STORAGE_KEY = "edor_guest_session";
@@ -14,19 +17,27 @@ function getStoredUser(): GuestUser | null {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (!stored) return null;
   try {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    if (!parsed.role) parsed.role = "user";
+    return parsed;
   } catch {
     return null;
   }
 }
 
-export function loginGuest() {
+export function loginGuest(role: UserRole = "user") {
+  const roleLabels: Record<UserRole, string> = {
+    admin: "Admin",
+    artist: "Artist",
+    user: "Guest",
+  };
   const guest: GuestUser = {
     id: "guest-" + Date.now(),
-    firstName: "Guest",
+    firstName: roleLabels[role],
     lastName: "",
     email: null,
     profileImageUrl: null,
+    role,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(guest));
   return guest;

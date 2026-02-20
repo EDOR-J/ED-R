@@ -109,6 +109,7 @@ All routes are in `server/routes.ts`:
 - `/listen-chat` — Listen Chat rooms (group listening with built-in chat for friends with shared tracks)
 - `/admin` — Admin panel (passcode-protected, manages locations/content/assignments)
 - `/upload` — Content upload page for artists/clients (drag-and-drop audio, artwork, video uploads via object storage)
+- `/artist` — Artist dashboard with listener stats, uploaded content list, quick actions, campaigns
 - `/login` — Guest login page (username: "guest", password: "edor")
 - `/profile` — User profile and settings page
 
@@ -123,13 +124,14 @@ All routes are in `server/routes.ts`:
 - **connect-pg-simple**: Session storage in PostgreSQL
 
 ### Authentication
-- **Replit Auth**: OpenID Connect authentication via Replit
-  - Auth module in `server/replit_integrations/auth/` (replitAuth.ts, storage.ts, routes.ts)
-  - Client hook: `client/src/hooks/use-auth.ts` (useAuth hook)
-  - Routes: `/api/login`, `/api/callback`, `/api/logout`, `/api/auth/user`
-  - Session storage in PostgreSQL `sessions` table via connect-pg-simple
-  - Protected routes require authentication; unauthenticated users redirected to /login
-  - User data: id, email, firstName, lastName, profileImageUrl from Replit OIDC claims
+- **Guest Login**: Client-side localStorage authentication (username: "guest", password: "edor")
+  - Client hook: `client/src/hooks/use-auth.ts` (useAuth hook with UserRole type)
+  - Three user roles: `admin` (full access), `artist` (upload + dashboard + stats), `user` (listener, no admin/upload)
+  - Role selected at login, stored in localStorage session
+  - Role-based route protection via `RoleRoute` component in App.tsx
+  - `/admin` restricted to admin role
+  - `/upload` and `/artist` restricted to artist + admin roles
+  - Navigation links conditionally shown based on role
 
 ### Key NPM Packages
 - **drizzle-orm** + **drizzle-kit**: Database ORM and migration tooling

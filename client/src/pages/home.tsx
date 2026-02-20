@@ -9,6 +9,7 @@ import { useMemo, useState, useEffect } from "react";
 import { MapPin, Radio, Sparkles, Scan } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/use-auth";
 import logo from "@assets/Screenshot_20260130_133453_Gallery_1769832888373.jpeg";
 
 function useQuery() {
@@ -70,17 +71,8 @@ function IceCrystal({ id, onComplete }: { id: number; onComplete: (id: number) =
 
 export default function HomePage() {
   const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    // Disabled environment check for mockup mode
-    /* 
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-    const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      setLocation("/login");
-    }
-    */
-  }, [setLocation]);
+  const { user } = useAuth();
+  const role = user?.role ?? "user";
   const [mode, setModeState] = useState(loadSession().mode);
   const { data: pulseData, isLoading: pulseLoading } = usePulseData();
   const { data: drops, isLoading: dropsLoading } = useDrops();
@@ -189,20 +181,24 @@ export default function HomePage() {
     <Shell
       right={
         <div className="flex items-center gap-1">
-          <Link
-            href="/upload"
-            className="rounded-full px-3 py-2 text-xs text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10 transition"
-            data-testid="link-upload"
-          >
-            Upload
-          </Link>
-          <Link
-            href="/admin"
-            className="rounded-full px-3 py-2 text-xs text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10 transition"
-            data-testid="link-admin"
-          >
-            Admin
-          </Link>
+          {(role === "artist" || role === "admin") && (
+            <Link
+              href={role === "artist" ? "/artist" : "/upload"}
+              className="rounded-full px-3 py-2 text-xs text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10 transition"
+              data-testid="link-upload"
+            >
+              {role === "artist" ? "Dashboard" : "Upload"}
+            </Link>
+          )}
+          {role === "admin" && (
+            <Link
+              href="/admin"
+              className="rounded-full px-3 py-2 text-xs text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10 transition"
+              data-testid="link-admin"
+            >
+              Admin
+            </Link>
+          )}
         </div>
       }
     >
