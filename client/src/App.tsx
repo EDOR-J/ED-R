@@ -15,6 +15,7 @@ import LoginPage from "./pages/auth/login";
 import ProfilePage from "@/pages/profile/index";
 import FriendsPage from "@/pages/social/friends";
 import ListenChatPage from "@/pages/social/listen-chat";
+import UploadPage from "./pages/upload";
 
 function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any>; path?: string }) {
   const { user } = useAuth();
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/profile">{() => <ProtectedRoute component={ProfilePage} />}</Route>
       <Route path="/social">{() => <ProtectedRoute component={FriendsPage} />}</Route>
       <Route path="/listen-chat">{() => <ProtectedRoute component={ListenChatPage} />}</Route>
+      <Route path="/upload">{() => <ProtectedRoute component={UploadPage} />}</Route>
       <Route component={NotFound} />
     </Switch>
   );

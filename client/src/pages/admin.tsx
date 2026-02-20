@@ -155,7 +155,7 @@ export default function AdminPage() {
           <ContentPanel
             contents={contents}
             onCreate={async (v) => {
-              await createContent.mutateAsync({ ...v, artworkSeed: null });
+              await createContent.mutateAsync({ ...v, artworkSeed: null, artworkUrl: null, videoUrl: null });
               toast("Content added");
             }}
             onUpdate={async (id, patch) => {

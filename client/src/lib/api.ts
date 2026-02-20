@@ -20,6 +20,8 @@ export type ApiContent = {
   description: string;
   audioUrl: string;
   artworkSeed: string | null;
+  artworkUrl: string | null;
+  videoUrl: string | null;
 };
 
 export type ApiAssignment = {

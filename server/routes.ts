@@ -8,11 +8,14 @@ import {
   insertListenChatSchema, insertListenChatMemberSchema, insertChatMessageSchema,
 } from "@shared/schema";
 import { authStorage } from "./replit_integrations/auth";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  registerObjectStorageRoutes(app);
 
   // ── Locations ──────────────────────────────────────────
   app.get("/api/locations", async (_req, res) => {

@@ -188,13 +188,22 @@ export default function HomePage() {
   return (
     <Shell
       right={
-        <Link
-          href="/admin"
-          className="rounded-full px-3 py-2 text-xs text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10 transition"
-          data-testid="link-admin"
-        >
-          Admin
-        </Link>
+        <div className="flex items-center gap-1">
+          <Link
+            href="/upload"
+            className="rounded-full px-3 py-2 text-xs text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10 transition"
+            data-testid="link-upload"
+          >
+            Upload
+          </Link>
+          <Link
+            href="/admin"
+            className="rounded-full px-3 py-2 text-xs text-white/60 hover:text-white hover:bg-white/5 active:bg-white/10 transition"
+            data-testid="link-admin"
+          >
+            Admin
+          </Link>
+        </div>
       }
     >
       <div className="w-full pt-4 pb-8 overflow-hidden">

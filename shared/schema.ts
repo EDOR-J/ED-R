@@ -21,6 +21,8 @@ export const contents = pgTable("contents", {
   description: text("description").notNull().default(""),
   audioUrl: text("audio_url").notNull(),
   artworkSeed: text("artwork_seed"),
+  artworkUrl: text("artwork_url"),
+  videoUrl: text("video_url"),
 });
 
 export const assignments = pgTable("assignments", {

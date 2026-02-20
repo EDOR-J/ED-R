@@ -67,6 +67,8 @@ All routes are in `server/routes.ts`:
 - `GET /api/listen-chats/:id/messages` — Get chat messages
 - `POST /api/listen-chats/:id/messages` — Send a chat message
 - `POST /api/seed-social` — Seed demo social data (development only)
+- `POST /api/uploads/request-url` — Get presigned URL for file upload (audio, artwork, video)
+- `GET /objects/*` — Serve uploaded files from object storage
 
 ### Database
 - **ORM**: Drizzle ORM with PostgreSQL dialect
@@ -74,7 +76,7 @@ All routes are in `server/routes.ts`:
   - `sessions` — sid, sess, expire (Replit Auth session storage)
   - `users` — id, email, firstName, lastName, profileImageUrl, createdAt, updatedAt
   - `locations` — id, name, description, lat, lng, isPermanent
-  - `contents` — id, title, creator, description, audioUrl, artworkSeed
+  - `contents` — id, title, creator, description, audioUrl, artworkSeed, artworkUrl, videoUrl
   - `assignments` — id, locationId, mode, contentId, startAt, endAt, createdAt
   - `unlockedSessions` — id, userId, nodeId, contentId, mode, unlockedAt
   - `libraryItems` — id, userId, contentId, and additional metadata
@@ -91,6 +93,12 @@ All routes are in `server/routes.ts`:
 - `server/storage.ts` defines an `IStorage` interface with methods for all CRUD operations
 - Implementation uses Drizzle ORM queries against PostgreSQL
 
+### Object Storage
+- Replit Object Storage for file uploads (audio, artwork, video)
+- `server/replit_integrations/object_storage/` — GCS-backed presigned URL upload flow
+- `client/src/components/ObjectUploader.tsx` — Uppy v5 upload modal component
+- `client/src/hooks/use-upload.ts` — React hook for custom upload UI
+
 ### Key Pages
 - `/` — Home: Mode selection (discover/park), location display, drop previews
 - `/pulse` — Geolocation-based content unlocking with map view
@@ -100,7 +108,8 @@ All routes are in `server/routes.ts`:
 - `/social` — Friends list, activity feed, friend requests, shared library discovery
 - `/listen-chat` — Listen Chat rooms (group listening with built-in chat for friends with shared tracks)
 - `/admin` — Admin panel (passcode-protected, manages locations/content/assignments)
-- `/login` — Replit Auth login page (redirects to /api/login)
+- `/upload` — Content upload page for artists/clients (drag-and-drop audio, artwork, video uploads via object storage)
+- `/login` — Guest login page (username: "guest", password: "edor")
 - `/profile` — User profile and settings page
 
 ### Development vs Production
