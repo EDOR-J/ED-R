@@ -7,7 +7,10 @@ import {
   type ApiChatMember, type ApiChatMessage,
 } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
-import { X, Clock, QrCode, Play, Pause, Send, Crown, Lock, MessageSquare } from "lucide-react";
+import {
+  X, Clock, QrCode, Play, Pause, Send, Crown, Lock, MessageSquare,
+  SkipBack, SkipForward, Volume2, VolumeX, Music
+} from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
@@ -23,6 +26,13 @@ const MEMBER_COLORS = [
 
 function getMemberColor(index: number) {
   return MEMBER_COLORS[index % MEMBER_COLORS.length];
+}
+
+function formatTime(s: number) {
+  if (!isFinite(s) || s < 0) return "0:00";
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
 type ChatTab = "circle" | "dm";
@@ -53,6 +63,10 @@ export default function CircleRoom() {
   const [timeLeft, setTimeLeft] = useState<string>("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
   const [messageText, setMessageText] = useState("");
   const [chatTab, setChatTab] = useState<ChatTab>("circle");
   const [isTyping, setIsTyping] = useState(false);
@@ -60,8 +74,10 @@ export default function CircleRoom() {
   const [dmText, setDmText] = useState("");
   const [dmMessages, setDmMessages] = useState<Array<{ id: string; from: string; to: string; text: string; fromName: string }>>([]);
   const [floatingMessages, setFloatingMessages] = useState<Array<{ id: string; msg: ApiChatMessage; memberIndex: number }>>([]);
+  const [isSeeking, setIsSeeking] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const prevMessageCountRef = useRef(0);
+  const progressBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!room) {
@@ -77,6 +93,24 @@ export default function CircleRoom() {
     }, 1000);
     return () => clearInterval(timer);
   }, [room]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onTimeUpdate = () => { if (!isSeeking) setCurrentTime(audio.currentTime); };
+    const onDurationChange = () => setDuration(audio.duration || 0);
+    const onEnded = () => { setIsPlaying(false); setCurrentTime(0); };
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("durationchange", onDurationChange);
+    audio.addEventListener("loadedmetadata", onDurationChange);
+    audio.addEventListener("ended", onEnded);
+    return () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("durationchange", onDurationChange);
+      audio.removeEventListener("loadedmetadata", onDurationChange);
+      audio.removeEventListener("ended", onEnded);
+    };
+  }, [isSeeking]);
 
   useEffect(() => {
     if (!isHost && playbackState && audioRef.current) {
@@ -118,9 +152,9 @@ export default function CircleRoom() {
     if (!messages || !chatData?.members) return;
     if (messages.length > prevMessageCountRef.current) {
       const newMsgs = messages.slice(prevMessageCountRef.current);
-      const members = chatData.members || [];
+      const mems = chatData.members || [];
       const newFloating = newMsgs.map(msg => {
-        const memberIdx = members.findIndex(m => m.userId === msg.userId);
+        const memberIdx = mems.findIndex(m => m.userId === msg.userId);
         return { id: msg.id, msg, memberIndex: memberIdx >= 0 ? memberIdx : 0 };
       });
       setFloatingMessages(prev => [...prev, ...newFloating]);
@@ -141,6 +175,44 @@ export default function CircleRoom() {
     else { audio.play().catch(() => {}); setIsPlaying(true); }
     updatePlayback.mutate({ chatId, playing: !nowPlaying, currentTime: audio.currentTime, hostId: userId });
   }, [isHost, chatId, userId, updatePlayback]);
+
+  const handleSeek = useCallback((clientX: number) => {
+    if (!isHost || !progressBarRef.current || !audioRef.current) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const newTime = pct * duration;
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+    updatePlayback.mutate({ chatId, playing: !audioRef.current.paused, currentTime: newTime, hostId: userId });
+  }, [isHost, duration, chatId, userId, updatePlayback]);
+
+  const handleSkip = useCallback((delta: number) => {
+    if (!isHost || !audioRef.current) return;
+    const audio = audioRef.current;
+    const newTime = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + delta));
+    audio.currentTime = newTime;
+    setCurrentTime(newTime);
+    updatePlayback.mutate({ chatId, playing: !audio.paused, currentTime: newTime, hostId: userId });
+  }, [isHost, chatId, userId, updatePlayback]);
+
+  const toggleMute = useCallback(() => {
+    if (!audioRef.current) return;
+    if (isMuted) {
+      audioRef.current.volume = volume;
+      setIsMuted(false);
+    } else {
+      audioRef.current.volume = 0;
+      setIsMuted(true);
+    }
+  }, [isMuted, volume]);
+
+  const handleVolumeChange = useCallback((val: number) => {
+    if (!audioRef.current) return;
+    const v = Math.max(0, Math.min(1, val));
+    audioRef.current.volume = v;
+    setVolume(v);
+    setIsMuted(v === 0);
+  }, []);
 
   function handleEnd() {
     if (chatId) {
@@ -182,7 +254,7 @@ export default function CircleRoom() {
   }
 
   const members = chatData?.members || [];
-  const memberCount = members.length || 1;
+  const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   if (isLoading) {
     return (
@@ -193,9 +265,6 @@ export default function CircleRoom() {
   }
 
   if (!room || !location || !content) return null;
-
-  const myMemberIndex = members.findIndex(m => m.userId === userId);
-  const myColor = getMemberColor(myMemberIndex >= 0 ? myMemberIndex : 0);
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col overflow-hidden" data-testid="circle-room">
@@ -213,7 +282,6 @@ export default function CircleRoom() {
             <Clock className="h-3 w-3" />
             <span className="text-[10px] font-bold">{timeLeft}</span>
           </div>
-
           <Dialog>
             <DialogTrigger asChild>
               <button className="text-white/30 hover:text-white/60 transition-colors" data-testid="button-qr">
@@ -238,7 +306,6 @@ export default function CircleRoom() {
               </div>
             </DialogContent>
           </Dialog>
-
           <button
             className="text-white/30 hover:text-white/60 transition-colors"
             onClick={handleEnd}
@@ -249,7 +316,7 @@ export default function CircleRoom() {
         </div>
       </div>
 
-      <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+      <div className="flex-1 relative flex items-center justify-center overflow-hidden min-h-0">
         <CircleFormation
           members={members}
           userId={userId}
@@ -259,7 +326,110 @@ export default function CircleRoom() {
           onPlayback={handlePlayback}
           floatingMessages={floatingMessages}
           onMemberTap={(m) => { setDmTarget(m); setChatTab("dm"); }}
+          content={content}
+          currentTime={currentTime}
+          duration={duration}
         />
+      </div>
+
+      <div className="shrink-0 px-4 pb-1">
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3 backdrop-blur-sm">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20 shrink-0">
+              {content.artworkUrl ? (
+                <img src={content.artworkUrl} alt="" className="h-full w-full rounded-xl object-cover" />
+              ) : (
+                <Music className="h-4 w-4 text-primary" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-white truncate" data-testid="text-player-title">{content.title}</p>
+              <p className="text-[10px] text-white/40 truncate">{content.creator}</p>
+            </div>
+            <button
+              onClick={toggleMute}
+              className="text-white/30 hover:text-white/60 transition-colors shrink-0"
+              data-testid="button-mute"
+            >
+              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </button>
+          </div>
+
+          <div
+            ref={progressBarRef}
+            className="relative h-1.5 rounded-full bg-white/[0.06] mb-2 group cursor-pointer"
+            onClick={(e) => handleSeek(e.clientX)}
+            onMouseDown={() => setIsSeeking(true)}
+            onMouseUp={() => setIsSeeking(false)}
+            data-testid="progress-bar"
+          >
+            <motion.div
+              className="absolute inset-y-0 left-0 rounded-full bg-primary"
+              style={{ width: `${progressPct}%` }}
+              layout
+            />
+            <motion.div
+              className="absolute top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ left: `calc(${progressPct}% - 6px)` }}
+            />
+            {isPlaying && (
+              <motion.div
+                className="absolute inset-y-0 left-0 rounded-full bg-primary/30"
+                style={{ width: `${progressPct}%` }}
+                animate={{ opacity: [0.3, 0.6, 0.3] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
+            )}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-mono text-white/25 tabular-nums w-10">{formatTime(currentTime)}</span>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => handleSkip(-10)}
+                className={`transition-colors ${isHost ? 'text-white/40 hover:text-white/70 active:scale-90' : 'text-white/10 cursor-not-allowed'}`}
+                disabled={!isHost}
+                data-testid="button-skip-back"
+              >
+                <SkipBack className="h-4 w-4" />
+              </button>
+              <motion.button
+                onClick={isHost ? handlePlayback : undefined}
+                className={`h-10 w-10 rounded-full flex items-center justify-center transition-all ${
+                  isHost
+                    ? 'bg-primary text-black hover:bg-primary/90 active:scale-90'
+                    : 'bg-white/5 text-white/20 cursor-not-allowed'
+                }`}
+                whileTap={isHost ? { scale: 0.85 } : {}}
+                data-testid="button-playback-main"
+              >
+                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+              </motion.button>
+              <button
+                onClick={() => handleSkip(10)}
+                className={`transition-colors ${isHost ? 'text-white/40 hover:text-white/70 active:scale-90' : 'text-white/10 cursor-not-allowed'}`}
+                disabled={!isHost}
+                data-testid="button-skip-forward"
+              >
+                <SkipForward className="h-4 w-4" />
+              </button>
+            </div>
+            <span className="text-[9px] font-mono text-white/25 tabular-nums w-10 text-right">{formatTime(duration)}</span>
+          </div>
+
+          {!isHost && (
+            <div className="flex items-center justify-center gap-1.5 mt-1.5">
+              <motion.div
+                className="h-1.5 w-1.5 rounded-full bg-primary"
+                animate={isPlaying ? { scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] } : {}}
+                transition={{ duration: 1, repeat: Infinity }}
+              />
+              <span className="text-[8px] font-bold text-primary/60 uppercase tracking-wider">
+                {isPlaying ? "Synced with host" : "Host paused"}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="shrink-0 border-t border-white/5 bg-black/80 backdrop-blur-xl">
@@ -293,7 +463,7 @@ export default function CircleRoom() {
         <AnimatePresence mode="wait">
           {chatTab === "circle" ? (
             <motion.div key="circle-chat" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col">
-              <div className="max-h-[120px] overflow-y-auto px-3 py-2 flex flex-col gap-1.5 scrollbar-none">
+              <div className="max-h-[100px] overflow-y-auto px-3 py-2 flex flex-col gap-1.5 scrollbar-none">
                 {(!messages || messages.length === 0) ? (
                   <p className="text-[10px] text-white/20 text-center py-2 italic">No messages yet</p>
                 ) : (
@@ -319,7 +489,7 @@ export default function CircleRoom() {
                 )}
               </div>
 
-              <div className="flex justify-center gap-3 px-3 py-1.5">
+              <div className="flex justify-center gap-3 px-3 py-1">
                 {["🫀", "🔥", "😮‍💨", "✨", "🤯"].map(emoji => (
                   <button
                     key={emoji}
@@ -360,7 +530,7 @@ export default function CircleRoom() {
                 <div className="px-3 py-3 flex flex-col gap-2">
                   <p className="text-[10px] text-white/30 font-bold uppercase tracking-wider">Tap a member to DM</p>
                   <div className="flex flex-wrap gap-2">
-                    {members.filter(m => m.userId !== userId).map((m, i) => {
+                    {members.filter(m => m.userId !== userId).map((m) => {
                       const idx = members.indexOf(m);
                       const color = getMemberColor(idx);
                       return (
@@ -391,7 +561,7 @@ export default function CircleRoom() {
                     <span className="text-xs font-bold text-white/60">{dmTarget.displayName}</span>
                     <span className="text-[8px] font-bold text-white/20 uppercase">Private</span>
                   </div>
-                  <div className="max-h-[100px] overflow-y-auto px-3 py-2 flex flex-col gap-1.5 scrollbar-none">
+                  <div className="max-h-[80px] overflow-y-auto px-3 py-2 flex flex-col gap-1.5 scrollbar-none">
                     {dmMessages.filter(d =>
                       (d.from === userId && d.to === dmTarget.userId) ||
                       (d.from === dmTarget.userId && d.to === userId)
@@ -453,6 +623,9 @@ function CircleFormation({
   onPlayback,
   floatingMessages,
   onMemberTap,
+  content,
+  currentTime,
+  duration,
 }: {
   members: ApiChatMember[];
   userId: string;
@@ -462,19 +635,23 @@ function CircleFormation({
   onPlayback: () => void;
   floatingMessages: Array<{ id: string; msg: ApiChatMessage; memberIndex: number }>;
   onMemberTap: (m: ApiChatMember) => void;
+  content: { title: string; creator: string };
+  currentTime: number;
+  duration: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState(280);
+  const [size, setSize] = useState(260);
 
   useEffect(() => {
     if (!containerRef.current) return;
     const w = containerRef.current.clientWidth;
     const h = containerRef.current.clientHeight;
-    setSize(Math.min(w, h, 340) - 40);
+    setSize(Math.min(w, h, 300) - 20);
   }, []);
 
-  const radius = size / 2 - 30;
-  const ringSize = members.length <= 4 ? 44 : members.length <= 8 ? 38 : 32;
+  const radius = size / 2 - 28;
+  const ringSize = members.length <= 4 ? 42 : members.length <= 8 ? 36 : 30;
+  const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center">
@@ -495,35 +672,31 @@ function CircleFormation({
           ))}
         </div>
 
-        <div className="absolute inset-0 flex items-center justify-center">
-          <motion.button
-            className="relative z-10"
-            onClick={isHost ? onPlayback : undefined}
-            whileTap={isHost ? { scale: 0.9 } : {}}
-            data-testid="button-playback"
-          >
-            <motion.div
-              className="h-14 w-14 rounded-full flex items-center justify-center"
-              style={{
-                background: isPlaying
-                  ? 'radial-gradient(circle, rgba(251,191,36,0.2) 0%, rgba(251,191,36,0.05) 100%)'
-                  : 'rgba(255,255,255,0.05)',
-                border: `2px solid ${isPlaying ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)'}`,
-              }}
-              animate={isPlaying ? { boxShadow: ['0 0 20px rgba(251,191,36,0.1)', '0 0 40px rgba(251,191,36,0.2)', '0 0 20px rgba(251,191,36,0.1)'] } : {}}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              {isHost ? (
-                isPlaying ? <Pause className="h-5 w-5 text-primary" /> : <Play className="h-5 w-5 text-primary ml-0.5" />
-              ) : (
-                <motion.div
-                  className="h-3 w-3 rounded-full bg-primary"
-                  animate={isPlaying ? { scale: [1, 1.4, 1] } : {}}
-                  transition={{ duration: 1, repeat: Infinity }}
-                />
-              )}
-            </motion.div>
-          </motion.button>
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 100 100" className="absolute">
+            <circle
+              cx="50" cy="50" r="46"
+              fill="none"
+              stroke="rgba(255,255,255,0.04)"
+              strokeWidth="2.5"
+            />
+            <motion.circle
+              cx="50" cy="50" r="46"
+              fill="none"
+              stroke="rgb(251,191,36)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeDasharray={`${progressPct * 2.89} ${289 - progressPct * 2.89}`}
+              strokeDashoffset="72.25"
+              style={{ filter: isPlaying ? 'drop-shadow(0 0 4px rgba(251,191,36,0.4))' : 'none' }}
+            />
+          </svg>
+        </div>
+
+        <div className="absolute inset-0 flex items-center justify-center flex-col gap-0.5 pointer-events-none">
+          <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
+            {members.length} {members.length === 1 ? "listener" : "listeners"}
+          </span>
         </div>
 
         {members.map((member, i) => {
@@ -534,7 +707,6 @@ function CircleFormation({
           const isMe = member.userId === userId;
           const isMemberHost = member.userId === (members[0]?.userId);
           const isMeTyping = isMe && isTyping;
-
           const memberFloating = floatingMessages.filter(f => f.memberIndex === i);
 
           return (
@@ -596,10 +768,7 @@ function CircleFormation({
                 >
                   <span
                     className="font-bold"
-                    style={{
-                      color,
-                      fontSize: ringSize < 36 ? '10px' : '12px',
-                    }}
+                    style={{ color, fontSize: ringSize < 36 ? '10px' : '12px' }}
                   >
                     {member.displayName?.charAt(0)?.toUpperCase() || "?"}
                   </span>
@@ -625,12 +794,6 @@ function CircleFormation({
             </div>
           );
         })}
-
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center whitespace-nowrap">
-          <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest">
-            {members.length} {members.length === 1 ? "listener" : "listeners"}
-          </p>
-        </div>
       </div>
     </div>
   );
