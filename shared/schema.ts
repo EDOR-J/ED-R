@@ -129,6 +129,14 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const circlePlayback = pgTable("circle_playback", {
+  chatId: varchar("chat_id").primaryKey(),
+  playing: boolean("playing").notNull().default(false),
+  currentTime: real("current_time").notNull().default(0),
+  hostId: varchar("host_id"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Insert schemas
 export const insertLocationSchema = createInsertSchema(locations).omit({ id: true });
 export const insertContentSchema = createInsertSchema(contents).omit({ id: true });
@@ -167,3 +175,4 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type CirclePlaybackState = typeof circlePlayback.$inferSelect;

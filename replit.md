@@ -76,7 +76,7 @@ All routes are in `server/routes.ts`:
 
 ### Database
 - **ORM**: Drizzle ORM with PostgreSQL dialect
-- **Schema** (`shared/schema.ts`): Eleven tables:
+- **Schema** (`shared/schema.ts`): Thirteen tables:
   - `sessions` — sid, sess, expire (Replit Auth session storage)
   - `users` — id, email, firstName, lastName, profileImageUrl, createdAt, updatedAt
   - `locations` — id, name, description, lat, lng, isPermanent
@@ -89,6 +89,9 @@ All routes are in `server/routes.ts`:
   - `listenChats` — id, name, contentId/Title/Artist, audioUrl, createdBy, isActive, isPrivate, isRemote, maxMembers, allowChat, locationId
   - `listenChatMembers` — id, chatId, userId, displayName, joinedAt
   - `chatMessages` — id, chatId, userId, displayName, message, sentAt
+  - `notifications` — id, userId, type, title, message, circleId, fromUserId, fromDisplayName, read, createdAt
+  - `circlePlayback` — chatId (PK), playing, currentTime, hostId, updatedAt (persisted to survive server restarts)
+- **Data Integrity**: Deleting a content item cascades to library_items, unlocked_sessions, user_status refs, and closes active listen_chats. Deleting a location cascades to unlocked_sessions, library_items, and nullifies listen_chats.locationId.
 - **Migrations**: Drizzle Kit with `drizzle-kit push` for schema sync
 - **Connection**: `pg.Pool` via `DATABASE_URL` environment variable
 - **Validation**: drizzle-zod generates Zod schemas from Drizzle table definitions

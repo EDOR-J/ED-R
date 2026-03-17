@@ -667,6 +667,12 @@ export function useSeedSocial() {
       const res = await apiRequest("POST", "/api/seed-social", {});
       return res.json();
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/friends/statuses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/listen-chats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/library"] });
+    },
   });
 }
 

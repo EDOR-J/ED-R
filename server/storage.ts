@@ -11,12 +11,13 @@ import {
   type ListenChatMember, type InsertListenChatMember,
   type ChatMessage, type InsertChatMessage,
   type Notification, type InsertNotification,
+  type CirclePlaybackState,
   users, locations, contents, assignments, unlockedSessions, libraryItems,
   friendships, userStatus, listenChats, listenChatMembers, chatMessages,
-  notifications,
+  notifications, circlePlayback,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, lte, gte, desc, inArray } from "drizzle-orm";
+import { eq, and, or, lte, gte, desc, inArray, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -91,6 +92,11 @@ export interface IStorage {
   getNotifications(userId: string): Promise<Notification[]>;
   markNotificationRead(id: string): Promise<void>;
   markAllNotificationsRead(userId: string): Promise<void>;
+
+  // Circle Playback
+  getPlaybackState(chatId: string): Promise<CirclePlaybackState | undefined>;
+  upsertPlaybackState(chatId: string, state: { playing: boolean; currentTime: number; hostId: string }): Promise<void>;
+  deletePlaybackState(chatId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -130,6 +136,9 @@ export class DatabaseStorage implements IStorage {
 
   async deleteLocation(id: string): Promise<void> {
     await db.delete(assignments).where(eq(assignments.locationId, id));
+    await db.delete(unlockedSessions).where(eq(unlockedSessions.nodeId, id));
+    await db.delete(libraryItems).where(eq(libraryItems.nodeId, id));
+    await db.update(listenChats).set({ locationId: null }).where(eq(listenChats.locationId, id));
     await db.delete(locations).where(eq(locations.id, id));
   }
 
@@ -154,6 +163,18 @@ export class DatabaseStorage implements IStorage {
 
   async deleteContent(id: string): Promise<void> {
     await db.delete(assignments).where(eq(assignments.contentId, id));
+    await db.delete(unlockedSessions).where(eq(unlockedSessions.contentId, id));
+    await db.delete(libraryItems).where(eq(libraryItems.contentId, id));
+    await db.update(userStatus)
+      .set({ currentContentId: null, currentContentTitle: null, currentContentArtist: null })
+      .where(eq(userStatus.currentContentId, id));
+    const chatsToClose = await db.select({ id: listenChats.id })
+      .from(listenChats)
+      .where(and(eq(listenChats.contentId, id), eq(listenChats.isActive, true)));
+    for (const c of chatsToClose) {
+      await db.delete(circlePlayback).where(eq(circlePlayback.chatId, c.id));
+      await db.update(listenChats).set({ isActive: false }).where(eq(listenChats.id, c.id));
+    }
     await db.delete(contents).where(eq(contents.id, id));
   }
 
@@ -391,6 +412,26 @@ export class DatabaseStorage implements IStorage {
 
   async markAllNotificationsRead(userId: string): Promise<void> {
     await db.update(notifications).set({ read: true }).where(eq(notifications.userId, userId));
+  }
+
+  // ── Circle Playback ──────────────────────────────────────
+
+  async getPlaybackState(chatId: string): Promise<CirclePlaybackState | undefined> {
+    const [state] = await db.select().from(circlePlayback).where(eq(circlePlayback.chatId, chatId));
+    return state;
+  }
+
+  async upsertPlaybackState(chatId: string, state: { playing: boolean; currentTime: number; hostId: string }): Promise<void> {
+    await db.insert(circlePlayback)
+      .values({ chatId, playing: state.playing, currentTime: state.currentTime, hostId: state.hostId, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: circlePlayback.chatId,
+        set: { playing: state.playing, currentTime: state.currentTime, hostId: state.hostId, updatedAt: new Date() },
+      });
+  }
+
+  async deletePlaybackState(chatId: string): Promise<void> {
+    await db.delete(circlePlayback).where(eq(circlePlayback.chatId, chatId));
   }
 }
 
