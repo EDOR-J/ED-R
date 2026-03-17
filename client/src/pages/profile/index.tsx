@@ -101,7 +101,6 @@ export default function ProfilePage() {
   const [wifiOnly, setWifiOnly] = useState(true);
   const [autoPlay, setAutoPlay] = useState(true);
 
-  const [shareLocation, setShareLocation] = useState(true);
   const [showListeningHistory, setShowListeningHistory] = useState(true);
   const [profileVisible, setProfileVisible] = useState(true);
   const [distanceUnit, setDistanceUnit] = useState(() => localStorage.getItem("edor:pref:distance-unit") || "metric");
@@ -194,11 +193,13 @@ export default function ProfilePage() {
         <SectionHeader label="Location & Privacy" />
         <Card className="edor-noise glass border-white/10 rounded-3xl overflow-hidden divide-y divide-white/5">
           <SettingsRow
-            icon={MapPin}
-            label="Share Location with Circles"
-            subtitle="Visible to Circle members only"
-            rightElement={<Switch checked={shareLocation} onCheckedChange={setShareLocation} data-testid="switch-share-location" />}
-            testId="setting-share-location"
+            icon={Shield}
+            label="Location Privacy"
+            subtitle="Your location is never shared with other users"
+            rightElement={
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">Protected</span>
+            }
+            testId="setting-location-privacy"
           />
           <SettingsRow
             icon={Eye}
