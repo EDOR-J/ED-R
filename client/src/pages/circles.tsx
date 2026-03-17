@@ -106,12 +106,7 @@ export default function CirclesHub() {
         locationId: isRemote ? undefined : selectedTrack.nodeId,
       });
 
-      startRoom({
-        nodeId: selectedTrack.nodeId,
-        contentId: selectedTrack.contentId,
-        mode: selectedTrack.mode as "discover" | "park",
-        expiresAt: new Date(Date.now() + 45 * 60000).toISOString(),
-      }, { serverChatId: chat.id, hostId: userId });
+      startRoom(selectedTrack.nodeId, selectedTrack.contentId, { serverChatId: chat.id, hostId: userId });
 
       setCreateOpen(false);
       resetCreate();
@@ -129,12 +124,7 @@ export default function CirclesHub() {
         displayName,
       });
 
-      startRoom({
-        nodeId: circle.locationId || "",
-        contentId: circle.contentId,
-        mode: "discover",
-        expiresAt: new Date(Date.now() + 45 * 60000).toISOString(),
-      }, { serverChatId: circle.id });
+      startRoom(circle.locationId || "", circle.contentId, { serverChatId: circle.id });
 
       navigate("/circle");
     } catch (err: any) {

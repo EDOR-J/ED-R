@@ -264,7 +264,7 @@ export default function CircleRoom() {
     );
   }
 
-  if (!room || !location || !content) return null;
+  if (!room || !content) return null;
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col overflow-hidden" data-testid="circle-room">
@@ -295,7 +295,7 @@ export default function CircleRoom() {
               <div className="flex flex-col items-center gap-6 py-4">
                 <div className="bg-white p-4 rounded-3xl">
                   <QRCodeSVG
-                    value={`${window.location.origin}/pulse?joinCircle=${chatId}&loc=${location.id}`}
+                    value={`${window.location.origin}/pulse?joinCircle=${chatId}${location ? `&loc=${location.id}` : ''}`}
                     size={200}
                     level="H"
                   />
