@@ -4,10 +4,11 @@ import { Card } from "@/components/ui/card";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import { navigateWithTransition } from "@/hooks/use-view-transition";
-import { usePulseData } from "@/lib/api";
+import { usePulseData, useCreateListenChat, useJoinListenChat, useActiveListenChats } from "@/lib/api";
 import { loadSession, setLastContentId, getLatestSession, startRoom } from "@/lib/edorSession";
+import { useAuth } from "@/hooks/use-auth";
 import { Pause, Play, SkipBack, Users } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 function useQuery() {
   const [loc] = useLocation();
@@ -20,43 +21,79 @@ export default function ContentPage() {
   const contentId = params?.contentId;
 
   const { data: pulseData, isLoading } = usePulseData();
+  const { data: activeChats } = useActiveListenChats();
   const session = useMemo(() => loadSession(), []);
   const latestSession = useMemo(() => getLatestSession(), []);
   const q = useQuery();
+  const { user } = useAuth();
+
+  const createChat = useCreateListenChat();
+  const joinChat = useJoinListenChat();
 
   const content = pulseData?.contents.find((c) => c.id === contentId);
   const locId = q.get("loc") ?? session.selectedLocationId;
   const location = pulseData?.locations.find((l) => l.id === locId);
   const mode = (q.get("mode") ?? session.mode) as any;
 
-  // Circle is only available for the most recent session of this specific content
   const isLatestForThisContent = latestSession?.contentId === contentId && latestSession?.nodeId === locId;
   const canStartCircle = location?.isPermanent && isLatestForThisContent;
 
-  const [inRoom, setInRoom] = useState(!!session.activeRoom && session.activeRoom.contentId === contentId);
+  const existingCircle = activeChats?.find(c => c.contentId === contentId && c.isActive);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [launching, setLaunching] = useState(false);
 
-  useEffect(() => {
-    if (session.activeRoom && session.activeRoom.contentId === contentId) {
-      setInRoom(true);
-    } else {
-      setInRoom(false);
-    }
-  }, [session.activeRoom, contentId]);
+  const userId = user?.id || "guest";
+  const displayName = user ? `${user.firstName} ${user.lastName}`.trim() : "Guest";
 
   function handleStartCircle() {
-    if (locId && contentId) {
-      startRoom(locId, contentId);
-      navigateWithTransition(setLocation, "/circle");
-    }
+    if (!locId || !contentId || !content || launching) return;
+    setLaunching(true);
+
+    createChat.mutate({
+      name: `Circle: ${location?.name || "Unknown"}`,
+      contentId,
+      contentTitle: content.title,
+      contentArtist: content.creator,
+      audioUrl: content.audioUrl,
+      createdBy: userId,
+      displayName,
+    }, {
+      onSuccess: (chat) => {
+        startRoom(locId, contentId, { serverChatId: chat.id, hostId: userId });
+        toast.success("Circle created!");
+        navigateWithTransition(setLocation, "/circle");
+      },
+      onError: () => {
+        setLaunching(false);
+        toast.error("Failed to create circle");
+      },
+    });
   }
 
   function handleJoinCircle() {
-    if (locId && contentId) {
-      startRoom(locId, contentId); // In mockup, join also creates if needed
-      navigateWithTransition(setLocation, "/circle");
+    if (!locId || !contentId || !content || launching) return;
+
+    if (existingCircle) {
+      setLaunching(true);
+      joinChat.mutate({
+        chatId: existingCircle.id,
+        userId,
+        displayName,
+      }, {
+        onSuccess: () => {
+          startRoom(locId, contentId, { serverChatId: existingCircle.id, hostId: existingCircle.createdBy });
+          toast.success("Joined circle!");
+          navigateWithTransition(setLocation, "/circle");
+        },
+        onError: () => {
+          setLaunching(false);
+          toast.error("Failed to join circle");
+        },
+      });
+    } else {
+      handleStartCircle();
     }
   }
 
@@ -67,11 +104,7 @@ export default function ContentPage() {
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
-
-    function onEnded() {
-      setPlaying(false);
-    }
-
+    function onEnded() { setPlaying(false); }
     el.addEventListener("ended", onEnded);
     return () => el.removeEventListener("ended", onEnded);
   }, []);
@@ -82,13 +115,13 @@ export default function ContentPage() {
     if (playing) {
       el.pause();
       setPlaying(false);
-      return;
-    }
-    try {
-      await el.play();
-      setPlaying(true);
-    } catch {
-      setPlaying(false);
+    } else {
+      try {
+        await el.play();
+        setPlaying(true);
+      } catch {
+        setPlaying(false);
+      }
     }
   }
 
@@ -107,7 +140,7 @@ export default function ContentPage() {
       <Shell title="Content not found">
         <Card className="glass rounded-3xl p-4" data-testid="card-not-found">
           <p className="text-sm text-white/70" data-testid="text-not-found">
-            This drop isn’t available.
+            This drop isn't available.
           </p>
           <Button
             className="mt-3 w-full rounded-2xl"
@@ -166,26 +199,37 @@ export default function ContentPage() {
             <Card className="bg-primary/5 border-primary/20 rounded-2xl p-4 mb-2">
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-xs font-bold text-primary uppercase tracking-wider">Listening Circle Available Here</span>
+                <span className="text-xs font-bold text-primary uppercase tracking-wider">Listening Circle Available</span>
               </div>
+
+              {existingCircle && (
+                <div className="mb-3 px-3 py-2 rounded-xl bg-primary/10 border border-primary/20">
+                  <p className="text-[10px] text-primary/80 font-medium">
+                    Active circle with {existingCircle.members?.length || 1} listener(s) — join now!
+                  </p>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="rounded-xl border-primary/20 text-xs font-bold h-9"
                   onClick={handleStartCircle}
-                  disabled={!isLatestForThisContent}
+                  disabled={!isLatestForThisContent || launching}
+                  data-testid="button-start-circle"
                 >
-                  Start Circle
+                  {launching ? "Creating…" : "Start Circle"}
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="rounded-xl border-primary/20 text-xs font-bold h-9"
                   onClick={handleJoinCircle}
-                  disabled={!isLatestForThisContent}
+                  disabled={!isLatestForThisContent || launching}
+                  data-testid="button-join-circle"
                 >
-                  Join Circle
+                  {existingCircle ? "Join Circle" : "Start & Join"}
                 </Button>
               </div>
               {!isLatestForThisContent && (

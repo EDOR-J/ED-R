@@ -59,6 +59,9 @@ All routes are in `server/routes.ts`:
 - `PUT /api/status` — Update user status (currently listening, online, etc.)
 - `GET /api/friends/statuses?userId=` — Get all friends' statuses
 - `GET /api/friends/shared-library?userId=` — Find friends with shared tracks
+- `PUT /api/circles/:chatId/playback` — Update circle playback state (host syncs play/pause/position)
+- `GET /api/circles/:chatId/playback` — Poll circle playback state (participants sync from host)
+- `DELETE /api/circles/:chatId/playback` — Clean up playback state on circle end
 - `POST /api/listen-chats` — Create a listen chat room
 - `GET /api/listen-chats` — Active listen chats (or filtered by userId)
 - `GET /api/listen-chats/:id` — Get chat with members

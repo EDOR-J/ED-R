@@ -1,8 +1,9 @@
 import Shell from "@/components/edor/shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
-import { useAnalytics } from "@/lib/api";
+import { Link, useLocation } from "wouter";
+import { useAnalytics, useDeleteLocation } from "@/lib/api";
+import { queryClient } from "@/lib/queryClient";
 import {
   BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -17,8 +18,9 @@ import {
   MoreHorizontal, RefreshCw, Shuffle, Trash2, Info,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
+import { navigateWithTransition } from "@/hooks/use-view-transition";
 
 const AMBER = "#f59e0b";
 const PURPLE = "#a855f7";
@@ -75,6 +77,8 @@ function CustomTooltip({ active, payload, label }: any) {
 export default function AdminAnalytics() {
   const { data, isLoading } = useAnalytics();
   const [expandedNode, setExpandedNode] = useState<string | null>(null);
+  const [, setLocation] = useLocation();
+  const deleteLocation = useDeleteLocation();
 
   if (isLoading || !data) {
     return (
@@ -282,8 +286,8 @@ export default function AdminAnalytics() {
             {nodeStats.length ? (
               <div className="flex flex-col divide-y divide-white/5">
                 {nodeStats.map((node) => (
+                  <React.Fragment key={node.id}>
                   <div
-                    key={node.id}
                     className="flex items-center gap-3 py-2.5 px-1 group"
                     data-testid={`card-node-${node.id}`}
                   >
@@ -333,7 +337,7 @@ export default function AdminAnalytics() {
                       >
                         <DropdownMenuItem
                           className="text-xs gap-2.5 py-2.5 cursor-pointer focus:bg-white/5 focus:text-white"
-                          onClick={() => toast("Reassign", { description: `Opening assignment panel for ${node.name}` })}
+                          onClick={() => navigateWithTransition(setLocation, `/admin?tab=assignments&locationId=${node.id}`)}
                           data-testid={`menu-reassign-${node.id}`}
                         >
                           <Shuffle className="h-3.5 w-3.5 text-white/50" />
@@ -342,7 +346,10 @@ export default function AdminAnalytics() {
 
                         <DropdownMenuItem
                           className="text-xs gap-2.5 py-2.5 cursor-pointer focus:bg-white/5 focus:text-white"
-                          onClick={() => toast("Refreshed", { description: `Node ${node.name} data refreshed` })}
+                          onClick={() => {
+                            queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
+                            toast.success("Refreshed", { description: `Analytics data reloaded` });
+                          }}
                           data-testid={`menu-refresh-${node.id}`}
                         >
                           <RefreshCw className="h-3.5 w-3.5 text-white/50" />
@@ -353,10 +360,7 @@ export default function AdminAnalytics() {
 
                         <DropdownMenuItem
                           className="text-xs gap-2.5 py-2.5 cursor-pointer focus:bg-white/5 focus:text-white"
-                          onClick={() => {
-                            setExpandedNode(expandedNode === node.id ? null : node.id);
-                            toast("Advanced Info", { description: `Showing details for ${node.name}` });
-                          }}
+                          onClick={() => setExpandedNode(expandedNode === node.id ? null : node.id)}
                           data-testid={`menu-info-${node.id}`}
                         >
                           <Info className="h-3.5 w-3.5 text-white/50" />
@@ -367,7 +371,17 @@ export default function AdminAnalytics() {
 
                         <DropdownMenuItem
                           className="text-xs gap-2.5 py-2.5 cursor-pointer text-red-400 focus:bg-red-500/10 focus:text-red-400"
-                          onClick={() => toast("Delete", { description: `Node ${node.name} marked for removal` })}
+                          onClick={() => {
+                            if (confirm(`Delete node "${node.name}"? This will also remove its assignments.`)) {
+                              deleteLocation.mutate(node.id, {
+                                onSuccess: () => {
+                                  queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
+                                  toast.success("Deleted", { description: `${node.name} removed` });
+                                },
+                                onError: () => toast.error("Failed to delete node"),
+                              });
+                            }
+                          }}
                           data-testid={`menu-delete-${node.id}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -376,6 +390,32 @@ export default function AdminAnalytics() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
+
+                  {expandedNode === node.id && (
+                    <div className="pb-3 px-1">
+                      <Card className="bg-white/3 border-white/8 rounded-xl p-3">
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <p className="text-white/30 font-bold uppercase tracking-wider text-[9px] mb-1">Node ID</p>
+                            <p className="text-white/60 font-mono text-[10px] break-all">{node.id}</p>
+                          </div>
+                          <div>
+                            <p className="text-white/30 font-bold uppercase tracking-wider text-[9px] mb-1">Avg / Day</p>
+                            <p className="text-white/60">{node.thisWeek ? (node.thisWeek / 7).toFixed(2) : "0"}</p>
+                          </div>
+                          <div>
+                            <p className="text-white/30 font-bold uppercase tracking-wider text-[9px] mb-1">Total Unlocks</p>
+                            <p className="text-white/60">{node.total}</p>
+                          </div>
+                          <div>
+                            <p className="text-white/30 font-bold uppercase tracking-wider text-[9px] mb-1">Weekly Rate</p>
+                            <p className="text-white/60">{node.thisWeek}</p>
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
+                  )}
+                </React.Fragment>
                 ))}
               </div>
             ) : (

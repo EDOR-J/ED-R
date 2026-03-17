@@ -14,11 +14,12 @@ export type RoomEvent =
   | { type: 'SEEK', at: number, timestamp: number };
 
 export type ListeningRoom = {
-  id: string; // nodeId-contentId-window
+  id: string;
   nodeId: string;
   contentId: string;
   expiresAt: string;
-  hostId: string; // current user for mockup
+  hostId: string;
+  serverChatId?: string;
   lastEvent?: RoomEvent;
 };
 
@@ -135,22 +136,22 @@ export function updateRoomEvent(event: RoomEvent) {
   }
 }
 
-export function startRoom(nodeId: string, contentId: string) {
+export function startRoom(nodeId: string, contentId: string, opts?: { serverChatId?: string; hostId?: string }) {
   const s = loadSession();
   const expiresAt = new Date();
   expiresAt.setMinutes(expiresAt.getMinutes() + 60);
-  
-  // timeWindow is the current hour bucket
+
   const timeWindow = Math.floor(Date.now() / (60 * 60 * 1000));
-  
+
   const room: ListeningRoom = {
     id: `${nodeId}-${contentId}-${timeWindow}`,
     nodeId,
     contentId,
     expiresAt: expiresAt.toISOString(),
-    hostId: "me"
+    hostId: opts?.hostId || "me",
+    serverChatId: opts?.serverChatId,
   };
-  
+
   const next = { ...s, activeRoom: room };
   saveSession(next);
   return room;

@@ -560,6 +560,58 @@ export function useSendChatMessage() {
   });
 }
 
+// ── Circle Playback hooks ────────────────────────────────
+
+export type CirclePlaybackState = {
+  playing: boolean;
+  currentTime: number;
+  updatedAt: number;
+  hostId: string | null;
+};
+
+export function useCirclePlayback(chatId: string) {
+  return useQuery<CirclePlaybackState>({
+    queryKey: ["/api/circles", chatId, "playback"],
+    queryFn: async () => {
+      const res = await fetch(`/api/circles/${chatId}/playback`);
+      return res.json();
+    },
+    enabled: !!chatId,
+    refetchInterval: 1500,
+  });
+}
+
+export function useUpdateCirclePlayback() {
+  return useMutation({
+    mutationFn: async (data: { chatId: string; playing: boolean; currentTime: number; hostId: string }) => {
+      const res = await apiRequest("PUT", `/api/circles/${data.chatId}/playback`, data);
+      return res.json();
+    },
+  });
+}
+
+export function useLeaveListenChat() {
+  return useMutation({
+    mutationFn: async (data: { chatId: string; userId: string }) => {
+      await apiRequest("POST", `/api/listen-chats/${data.chatId}/leave`, { userId: data.userId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/listen-chats"] });
+    },
+  });
+}
+
+export function useCloseListenChat() {
+  return useMutation({
+    mutationFn: async (chatId: string) => {
+      await apiRequest("POST", `/api/listen-chats/${chatId}/close`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/listen-chats"] });
+    },
+  });
+}
+
 export type AnalyticsData = {
   overview: {
     totalUnlocks: number;

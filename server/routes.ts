@@ -271,6 +271,28 @@ export async function registerRoutes(
     res.json(statuses);
   });
 
+  // ── Circle Playback State (in-memory for real-time sync) ──
+
+  const circlePlayback = new Map<string, { playing: boolean; currentTime: number; updatedAt: number; hostId: string }>();
+
+  app.put("/api/circles/:chatId/playback", async (req, res) => {
+    const { chatId } = req.params;
+    const { playing, currentTime, hostId } = req.body;
+    circlePlayback.set(chatId, { playing: !!playing, currentTime: currentTime || 0, updatedAt: Date.now(), hostId });
+    res.json({ ok: true });
+  });
+
+  app.get("/api/circles/:chatId/playback", async (req, res) => {
+    const state = circlePlayback.get(req.params.chatId);
+    if (!state) return res.json({ playing: false, currentTime: 0, updatedAt: 0, hostId: null });
+    res.json(state);
+  });
+
+  app.delete("/api/circles/:chatId/playback", async (_req, res) => {
+    circlePlayback.delete(_req.params.chatId);
+    res.status(204).send();
+  });
+
   // ── Listen Chats ───────────────────────────────────────
 
   app.post("/api/listen-chats", async (req, res) => {

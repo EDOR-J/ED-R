@@ -6,8 +6,9 @@ import { toast } from "sonner";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { navigateWithTransition } from "@/hooks/use-view-transition";
-import { usePulseData, useUnlock, getNearestLocation, pickContentForLocationMode, type ApiLocation, type ApiContent, type PulseMode } from "@/lib/api";
-import { loadSession, setSelectedLocation } from "@/lib/edorSession";
+import { usePulseData, useUnlock, useJoinListenChat, getNearestLocation, pickContentForLocationMode, type ApiLocation, type ApiContent, type PulseMode } from "@/lib/api";
+import { loadSession, setSelectedLocation, startRoom } from "@/lib/edorSession";
+import { useAuth } from "@/hooks/use-auth";
 import { MapPin, ShieldAlert, X, Music, Headphones } from "lucide-react";
 import { Map, Marker, Overlay } from "pigeon-maps";
 import { motion, AnimatePresence } from "framer-motion";
@@ -180,6 +181,8 @@ export default function PulsePage() {
   const { data, isLoading } = usePulseData();
   const session = useMemo(() => loadSession(), []);
   const unlockMutation = useUnlock();
+  const joinChatMutation = useJoinListenChat();
+  const { user } = useAuth();
 
   const locations = data?.locations ?? [];
   const contents = data?.contents ?? [];
@@ -197,62 +200,36 @@ export default function PulsePage() {
   }, [locations, manualLocationId]);
 
   const queryParams = new URLSearchParams(window.location.search);
-  const joinRoomId = queryParams.get("join");
+  const joinCircleId = queryParams.get("joinCircle");
   const joinLocId = queryParams.get("loc");
 
   useEffect(() => {
-    if (joinRoomId && joinLocId && userCoords) {
+    if (joinCircleId && joinLocId) {
       const location = locations.find(l => l.id === joinLocId);
       if (!location) {
         toast.error("Invalid Listening Circle");
         return;
       }
 
-      if (!location.isPermanent) {
-        toast.error("Circles are only available at permanent Pulse locations.");
-        return;
-      }
+      const userId = user?.id || "guest";
+      const displayName = user ? `${user.firstName} ${user.lastName}`.trim() : "Guest";
 
-      const lat1 = userCoords[0];
-      const lon1 = userCoords[1];
-      const lat2 = location.lat;
-      const lon2 = location.lng;
-      
-      const R = 6371;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distanceKm = R * c;
-
-      if (distanceKm > 0.1) {
-        toast.error("Circles are only available at permanent Pulse locations.");
-        return;
-      }
-
-      const [nodeId, contentId] = joinRoomId.split('-');
-      const expiresAt = new Date();
-      expiresAt.setMinutes(expiresAt.getMinutes() + 60);
-      
-      const s = loadSession();
-      const room = {
-        id: joinRoomId,
-        nodeId,
-        contentId,
-        expiresAt: expiresAt.toISOString(),
-        hostId: "other"
-      };
-      
-      const next = { ...s, activeRoom: room };
-      (next as any).activeRoom = room;
-      localStorage.setItem("edor:pulse:session:v1", JSON.stringify(next));
-      
-      toast.success(`Joined Circle at ${location.name}`);
-      navigateWithTransition(setLocation, "/circle");
+      joinChatMutation.mutate({
+        chatId: joinCircleId,
+        userId,
+        displayName,
+      }, {
+        onSuccess: () => {
+          startRoom(joinLocId, "", { serverChatId: joinCircleId, hostId: "other" });
+          toast.success(`Joined Circle at ${location.name}`);
+          navigateWithTransition(setLocation, "/circle");
+        },
+        onError: () => {
+          toast.error("Circle not found or has ended");
+        },
+      });
     }
-  }, [joinRoomId, joinLocId, userCoords, locations, setLocation]);
+  }, [joinCircleId, joinLocId, locations, setLocation]);
 
   useEffect(() => {
     let cancelled = false;

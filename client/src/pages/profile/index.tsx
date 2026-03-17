@@ -104,6 +104,7 @@ export default function ProfilePage() {
   const [shareLocation, setShareLocation] = useState(true);
   const [showListeningHistory, setShowListeningHistory] = useState(true);
   const [profileVisible, setProfileVisible] = useState(true);
+  const [distanceUnit, setDistanceUnit] = useState(() => localStorage.getItem("edor:pref:distance-unit") || "metric");
 
   const handleSignOut = () => {
     logout();
@@ -213,15 +214,26 @@ export default function ProfilePage() {
             rightElement={<Switch checked={showListeningHistory} onCheckedChange={setShowListeningHistory} data-testid="switch-history" />}
             testId="setting-history"
           />
-          <SettingsRow icon={Ruler} label="Distance Units" subtitle="Metric (meters)" onClick={() => toast("Unit preferences coming soon")} testId="setting-units" />
+          <SettingsRow
+            icon={Ruler}
+            label="Distance Units"
+            subtitle={distanceUnit === "metric" ? "Metric (meters)" : "Imperial (feet)"}
+            onClick={() => {
+              const next = distanceUnit === "metric" ? "imperial" : "metric";
+              setDistanceUnit(next);
+              localStorage.setItem("edor:pref:distance-unit", next);
+              toast.success(`Switched to ${next === "metric" ? "meters" : "feet"}`);
+            }}
+            testId="setting-units"
+          />
         </Card>
 
         <SectionHeader label="Support" />
         <Card className="edor-noise glass border-white/10 rounded-3xl overflow-hidden divide-y divide-white/5">
-          <SettingsRow icon={HelpCircle} label="Help & FAQ" onClick={() => toast("Help center coming soon")} testId="setting-help" />
-          <SettingsRow icon={FileText} label="Terms of Service" onClick={() => toast("Terms of service")} testId="setting-terms" />
-          <SettingsRow icon={Shield} label="Privacy Policy" onClick={() => toast("Privacy policy")} testId="setting-privacy" />
-          <SettingsRow icon={Info} label="About EDØR" subtitle="v1.0.4" onClick={() => toast("EDØR — Place-based music & culture")} testId="setting-about" />
+          <SettingsRow icon={HelpCircle} label="Help & FAQ" subtitle="Get help with EDØR" onClick={() => window.open("mailto:support@edor.app", "_blank")} testId="setting-help" />
+          <SettingsRow icon={FileText} label="Terms of Service" subtitle="View terms" onClick={() => toast.info("Terms of Service — By using EDØR you agree to our community guidelines.")} testId="setting-terms" />
+          <SettingsRow icon={Shield} label="Privacy Policy" subtitle="Your data is safe" onClick={() => toast.info("EDØR only uses your location during active Pulse sessions.")} testId="setting-privacy" />
+          <SettingsRow icon={Info} label="About EDØR" subtitle="v1.0.4" onClick={() => toast.info("EDØR — Place-based music & culture discovery")} testId="setting-about" />
         </Card>
 
         <div className="mt-6">
