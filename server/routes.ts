@@ -576,8 +576,8 @@ export async function registerRoutes(
 
   // ── Seed social data (development only) ────────────────
   app.post("/api/seed-social", async (_req, res) => {
-    const existingUsers = await storage.searchUsers("");
-    if (existingUsers.length >= 4) {
+    const demoMaya = await storage.getUser("demo-maya");
+    if (demoMaya) {
       return res.json({ message: "Social data already seeded" });
     }
 

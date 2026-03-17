@@ -669,9 +669,13 @@ export function useSeedSocial() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/friends/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/friends/sent"] });
       queryClient.invalidateQueries({ queryKey: ["/api/friends/statuses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/friends/shared-library"] });
       queryClient.invalidateQueries({ queryKey: ["/api/listen-chats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/library"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
     },
   });
 }

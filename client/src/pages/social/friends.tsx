@@ -156,7 +156,6 @@ export default function FriendsPage() {
     try {
       await seedSocial.mutateAsync();
       toast.success("Social data loaded!");
-      window.location.reload();
     } catch {
       toast.error("Already seeded");
     }
