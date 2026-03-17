@@ -1,12 +1,12 @@
 import { useLocation } from "wouter";
-import { Home, Radio, Library, Users, User } from "lucide-react";
+import { Home, Radio, Library, Disc, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useViewTransitionNavigate } from "@/hooks/use-view-transition";
 
 const navItems = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/pulse", icon: Radio, label: "Pulse" },
-  { href: "/social", icon: Users, label: "Social" },
+  { href: "/circles", icon: Disc, label: "Circles" },
   { href: "/library", icon: Library, label: "Library" },
   { href: "/profile", icon: User, label: "Profile" },
 ];
@@ -28,7 +28,7 @@ export function BottomNav() {
         {navItems.map(({ href, icon: Icon, label }) => {
           const isActive = href === "/"
             ? location === "/"
-            : location.startsWith(href) || (href === "/social" && location.startsWith("/listen-chat"));
+            : location.startsWith(href) || (href === "/circles" && (location.startsWith("/circle") || location.startsWith("/listen-chat") || location.startsWith("/social")));
           return (
             <a
               key={href}

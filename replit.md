@@ -62,10 +62,10 @@ All routes are in `server/routes.ts`:
 - `PUT /api/circles/:chatId/playback` — Update circle playback state (host syncs play/pause/position)
 - `GET /api/circles/:chatId/playback` — Poll circle playback state (participants sync from host)
 - `DELETE /api/circles/:chatId/playback` — Clean up playback state on circle end
-- `POST /api/listen-chats` — Create a listen chat room
+- `POST /api/listen-chats` — Create a circle/listen chat (supports isPrivate, isRemote, maxMembers, allowChat, locationId)
 - `GET /api/listen-chats` — Active listen chats (or filtered by userId)
 - `GET /api/listen-chats/:id` — Get chat with members
-- `POST /api/listen-chats/:id/join` — Join a listen chat
+- `POST /api/listen-chats/:id/join` — Join a listen chat (enforces maxMembers, deduplicates)
 - `POST /api/listen-chats/:id/leave` — Leave a listen chat
 - `POST /api/listen-chats/:id/close` — Close a listen chat
 - `GET /api/listen-chats/:id/messages` — Get chat messages
@@ -86,7 +86,7 @@ All routes are in `server/routes.ts`:
   - `libraryItems` — id, userId, contentId, and additional metadata
   - `friendships` — id, senderId, receiverId, status (pending/accepted/declined), createdAt
   - `userStatus` — id, userId, displayName, currentContent info, statusText, isOnline, lastSeen
-  - `listenChats` — id, name, contentId/Title/Artist, audioUrl, createdBy, isActive
+  - `listenChats` — id, name, contentId/Title/Artist, audioUrl, createdBy, isActive, isPrivate, isRemote, maxMembers, allowChat, locationId
   - `listenChatMembers` — id, chatId, userId, displayName, joinedAt
   - `chatMessages` — id, chatId, userId, displayName, message, sentAt
 - **Migrations**: Drizzle Kit with `drizzle-kit push` for schema sync
@@ -107,7 +107,8 @@ All routes are in `server/routes.ts`:
 - `/` — Home: Mode selection (discover/park), location display, drop previews
 - `/pulse` — Geolocation-based content unlocking with map view
 - `/content/:contentId` — Audio player with playback controls, circle launch
-- `/circle` — Listening Circle room (synchronized playback, QR sharing, chat-like UI)
+- `/circles` — Circles hub (browse/create/join circles, friend activity, default settings)
+- `/circle` — Active Circle room (synchronized playback, QR sharing, chat)
 - `/library` — User's unlocked content collection
 - `/social` — Friends list, activity feed, friend requests, shared library discovery
 - `/listen-chat` — Listen Chat rooms (group listening with built-in chat for friends with shared tracks)

@@ -10,6 +10,7 @@ import PulsePage from "./pages/pulse";
 import ContentPage from "./pages/content";
 import AdminPage from "./pages/admin";
 import CircleRoom from "./pages/circle";
+import CirclesHub from "./pages/circles";
 import LibraryPage from "./pages/library";
 import LoginPage from "./pages/auth/login";
 import ProfilePage from "@/pages/profile/index";
@@ -52,6 +53,7 @@ function Router() {
       <Route path="/content/:contentId">{(params) => <ProtectedRoute component={ContentPage} {...params} />}</Route>
       <Route path="/admin">{() => <RoleRoute component={AdminPage} allowedRoles={["admin"]} />}</Route>
       <Route path="/admin/analytics">{() => <RoleRoute component={AdminAnalytics} allowedRoles={["admin"]} />}</Route>
+      <Route path="/circles">{() => <ProtectedRoute component={CirclesHub} />}</Route>
       <Route path="/circle">{() => <ProtectedRoute component={CircleRoom} />}</Route>
       <Route path="/library">{() => <ProtectedRoute component={LibraryPage} />}</Route>
       <Route path="/profile">{() => <ProtectedRoute component={ProfilePage} />}</Route>

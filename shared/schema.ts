@@ -91,6 +91,11 @@ export const listenChats = pgTable("listen_chats", {
   audioUrl: text("audio_url").notNull(),
   createdBy: varchar("created_by").notNull(),
   isActive: boolean("is_active").notNull().default(true),
+  isPrivate: boolean("is_private").notNull().default(false),
+  isRemote: boolean("is_remote").notNull().default(false),
+  maxMembers: integer("max_members").notNull().default(20),
+  allowChat: boolean("allow_chat").notNull().default(true),
+  locationId: varchar("location_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -327,6 +327,13 @@ export async function registerRoutes(
   app.post("/api/listen-chats/:id/join", async (req, res) => {
     const chat = await storage.getListenChat(req.params.id);
     if (!chat || !chat.isActive) return res.status(404).json({ message: "Chat not found or closed" });
+    const members = await storage.getListenChatMembers(req.params.id);
+    if (members.length >= (chat.maxMembers || 20)) {
+      return res.status(403).json({ message: "Circle is full" });
+    }
+    if (members.some(m => m.userId === req.body.userId)) {
+      return res.json(members.find(m => m.userId === req.body.userId));
+    }
     const member = await storage.joinListenChat({
       chatId: req.params.id,
       userId: req.body.userId,

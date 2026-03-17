@@ -317,6 +317,11 @@ export type ApiListenChat = {
   audioUrl: string;
   createdBy: string;
   isActive: boolean;
+  isPrivate: boolean;
+  isRemote: boolean;
+  maxMembers: number;
+  allowChat: boolean;
+  locationId: string | null;
   createdAt: string;
   members?: ApiChatMember[];
 };
@@ -526,6 +531,11 @@ export function useCreateListenChat() {
       audioUrl: string;
       createdBy: string;
       displayName: string;
+      isPrivate?: boolean;
+      isRemote?: boolean;
+      maxMembers?: number;
+      allowChat?: boolean;
+      locationId?: string;
     }) => {
       const res = await apiRequest("POST", "/api/listen-chats", data);
       return res.json();
@@ -533,6 +543,18 @@ export function useCreateListenChat() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/listen-chats"] });
     },
+  });
+}
+
+export function useUserCircles(userId: string) {
+  return useQuery<ApiListenChat[]>({
+    queryKey: ["/api/listen-chats", "user", userId],
+    queryFn: async () => {
+      const res = await fetch(`/api/listen-chats?userId=${userId}`);
+      return res.json();
+    },
+    enabled: !!userId,
+    refetchInterval: 10_000,
   });
 }
 
