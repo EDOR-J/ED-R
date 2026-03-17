@@ -48,7 +48,7 @@ export function loginGuest(role: UserRole = "user", isPaid: boolean = false) {
 
 export function canHostCircle(user: GuestUser | null): boolean {
   if (!user) return false;
-  return user.isPaid || user.role === "admin" || user.role === "artist";
+  return user.isPaid || user.role === "admin";
 }
 
 export function logoutGuest() {
