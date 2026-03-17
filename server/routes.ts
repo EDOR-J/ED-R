@@ -575,11 +575,14 @@ export async function registerRoutes(
   });
 
   // ── Seed social data (development only) ────────────────
-  app.post("/api/seed-social", async (_req, res) => {
+  app.post("/api/seed-social", async (req, res) => {
     const demoMaya = await storage.getUser("demo-maya");
     if (demoMaya) {
       return res.json({ message: "Social data already seeded" });
     }
+
+    const callerUserId = (req.body.userId as string) || "demo-you";
+    const callerDisplayName = (req.body.displayName as string) || "Pulse User";
 
     const demoUsers = await Promise.all([
       authStorage.upsertUser({ id: "demo-maya", email: "maya@edor.app", firstName: "Maya", lastName: "Chen" }),
@@ -589,7 +592,7 @@ export async function registerRoutes(
       authStorage.upsertUser({ id: "demo-zoe", email: "zoe@edor.app", firstName: "Zoe", lastName: "Echo" }),
     ]);
 
-    const myUser = await authStorage.upsertUser({ id: "demo-you", email: "you@edor.app", firstName: "Pulse", lastName: "User" });
+    const myUser = await authStorage.upsertUser({ id: callerUserId, email: "you@edor.app", firstName: callerDisplayName, lastName: "" });
 
     await Promise.all([
       storage.sendFriendRequest({ senderId: demoUsers[0].id, receiverId: myUser.id }),

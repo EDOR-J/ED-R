@@ -663,8 +663,8 @@ export function useAnalytics() {
 
 export function useSeedSocial() {
   return useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/seed-social", {});
+    mutationFn: async (data: { userId: string; displayName: string }) => {
+      const res = await apiRequest("POST", "/api/seed-social", data);
       return res.json();
     },
     onSuccess: () => {

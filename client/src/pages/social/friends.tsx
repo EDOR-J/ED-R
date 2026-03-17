@@ -154,7 +154,7 @@ export default function FriendsPage() {
 
   const handleSeedSocial = async () => {
     try {
-      await seedSocial.mutateAsync();
+      await seedSocial.mutateAsync({ userId, displayName });
       toast.success("Social data loaded!");
     } catch {
       toast.error("Already seeded");
@@ -173,7 +173,11 @@ export default function FriendsPage() {
     }
   };
 
-  if (!userId) {
+  const hasFriends = friends && friends.length > 0;
+  const hasPending = pending && pending.length > 0;
+  const showSeedScreen = userId && !hasFriends && !hasPending;
+
+  if (!userId || showSeedScreen) {
     return (
       <Shell title="Social">
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-6">
