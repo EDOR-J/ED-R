@@ -355,6 +355,7 @@ export class DatabaseStorage implements IStorage {
 
   async closeListenChat(id: string): Promise<void> {
     await db.update(listenChats).set({ isActive: false }).where(eq(listenChats.id, id));
+    await db.delete(circlePlayback).where(eq(circlePlayback.chatId, id));
   }
 
   // ── Listen Chat Members ────────────────────────────────

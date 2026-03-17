@@ -592,7 +592,10 @@ export async function registerRoutes(
       authStorage.upsertUser({ id: "demo-zoe", email: "zoe@edor.app", firstName: "Zoe", lastName: "Echo" }),
     ]);
 
-    const myUser = await authStorage.upsertUser({ id: callerUserId, email: `${callerUserId}@edor.app`, firstName: callerDisplayName, lastName: "" });
+    let myUser = await storage.getUser(callerUserId);
+    if (!myUser) {
+      myUser = await authStorage.upsertUser({ id: callerUserId, email: `${callerUserId}@edor.app`, firstName: callerDisplayName, lastName: "" });
+    }
 
     await Promise.all([
       storage.sendFriendRequest({ senderId: demoUsers[0].id, receiverId: myUser.id }),
