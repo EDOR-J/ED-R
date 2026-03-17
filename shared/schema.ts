@@ -116,6 +116,19 @@ export const chatMessages = pgTable("chat_messages", {
   sentAt: timestamp("sent_at").notNull().defaultNow(),
 });
 
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  circleId: varchar("circle_id"),
+  fromUserId: varchar("from_user_id"),
+  fromDisplayName: text("from_display_name"),
+  read: boolean("read").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Insert schemas
 export const insertLocationSchema = createInsertSchema(locations).omit({ id: true });
 export const insertContentSchema = createInsertSchema(contents).omit({ id: true });
@@ -128,6 +141,7 @@ export const insertUserStatusSchema = createInsertSchema(userStatus).omit({ id: 
 export const insertListenChatSchema = createInsertSchema(listenChats).omit({ id: true, createdAt: true, isActive: true });
 export const insertListenChatMemberSchema = createInsertSchema(listenChatMembers).omit({ id: true, joinedAt: true });
 export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({ id: true, sentAt: true });
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true, read: true });
 
 // Types
 export type Location = typeof locations.$inferSelect;
@@ -151,3 +165,5 @@ export type ListenChatMember = typeof listenChatMembers.$inferSelect;
 export type InsertListenChatMember = z.infer<typeof insertListenChatMemberSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;

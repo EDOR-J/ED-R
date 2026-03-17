@@ -4,8 +4,9 @@ import { navigateWithTransition } from "@/hooks/use-view-transition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Zap, Lock, User, Shield, Mic2, UserCircle } from "lucide-react";
+import { Zap, Lock, User, Shield, Mic2, UserCircle, Crown } from "lucide-react";
 import { loginGuest, type UserRole } from "@/hooks/use-auth";
 
 const roles: { value: UserRole; label: string; icon: React.ElementType; desc: string }[] = [
@@ -19,11 +20,12 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [selectedRole, setSelectedRole] = useState<UserRole>("user");
+  const [isPaid, setIsPaid] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.toLowerCase() === "guest" && password === "edor") {
-      loginGuest(selectedRole);
+      loginGuest(selectedRole, isPaid);
       toast.success("Welcome to EDØR");
       navigateWithTransition(setLocation, "/");
     } else {
@@ -102,6 +104,21 @@ export default function LoginPage() {
                 })}
               </div>
             </div>
+
+            {selectedRole === "user" && (
+              <div className="flex items-center justify-between p-3 rounded-2xl border border-white/10 bg-white/[0.03]">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Crown className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white/90">Paid Subscriber</p>
+                    <p className="text-[9px] text-white/40">Host circles, premium features</p>
+                  </div>
+                </div>
+                <Switch checked={isPaid} onCheckedChange={setIsPaid} data-testid="switch-paid" />
+              </div>
+            )}
 
             <Button
               type="submit"

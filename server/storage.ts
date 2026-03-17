@@ -10,8 +10,10 @@ import {
   type ListenChat, type InsertListenChat,
   type ListenChatMember, type InsertListenChatMember,
   type ChatMessage, type InsertChatMessage,
+  type Notification, type InsertNotification,
   users, locations, contents, assignments, unlockedSessions, libraryItems,
   friendships, userStatus, listenChats, listenChatMembers, chatMessages,
+  notifications,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, lte, gte, desc, inArray } from "drizzle-orm";
@@ -83,6 +85,12 @@ export interface IStorage {
   // Chat Messages
   sendMessage(data: InsertChatMessage): Promise<ChatMessage>;
   getMessages(chatId: string, limit?: number): Promise<ChatMessage[]>;
+
+  // Notifications
+  createNotification(data: InsertNotification): Promise<Notification>;
+  getNotifications(userId: string): Promise<Notification[]>;
+  markNotificationRead(id: string): Promise<void>;
+  markAllNotificationsRead(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -361,6 +369,28 @@ export class DatabaseStorage implements IStorage {
       .where(eq(chatMessages.chatId, chatId))
       .orderBy(desc(chatMessages.sentAt))
       .limit(limit);
+  }
+
+  // ── Notifications ──────────────────────────────────────
+
+  async createNotification(data: InsertNotification): Promise<Notification> {
+    const [created] = await db.insert(notifications).values(data).returning();
+    return created;
+  }
+
+  async getNotifications(userId: string): Promise<Notification[]> {
+    return db.select().from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(50);
+  }
+
+  async markNotificationRead(id: string): Promise<void> {
+    await db.update(notifications).set({ read: true }).where(eq(notifications.id, id));
+  }
+
+  async markAllNotificationsRead(userId: string): Promise<void> {
+    await db.update(notifications).set({ read: true }).where(eq(notifications.userId, userId));
   }
 }
 

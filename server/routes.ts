@@ -6,6 +6,7 @@ import {
   insertUnlockedSessionSchema, insertLibraryItemSchema,
   insertFriendshipSchema, insertUserStatusSchema,
   insertListenChatSchema, insertListenChatMemberSchema, insertChatMessageSchema,
+  insertNotificationSchema,
 } from "@shared/schema";
 import { authStorage } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
@@ -304,6 +305,25 @@ export async function registerRoutes(
       userId: parsed.data.createdBy,
       displayName: req.body.displayName || "Host",
     });
+
+    const hostId = parsed.data.createdBy;
+    const hostName = req.body.displayName || "Someone";
+    const friends = await storage.getFriends(hostId);
+    const friendIds = friends.map(f => f.senderId === hostId ? f.receiverId : f.senderId);
+    for (const friendId of friendIds) {
+      try {
+        await storage.createNotification({
+          userId: friendId,
+          type: "circle_started",
+          title: `${hostName} started a Circle`,
+          message: `Playing "${chat.contentTitle}" by ${chat.contentArtist}`,
+          circleId: chat.id,
+          fromUserId: hostId,
+          fromDisplayName: hostName,
+        });
+      } catch {}
+    }
+
     res.status(201).json(chat);
   });
 
@@ -638,6 +658,27 @@ export async function registerRoutes(
     }
 
     res.json({ message: "Social data seeded", users: demoUsers.length + 1, myUserId: myUser.id });
+  });
+
+  // ── Notifications ──────────────────────────────────────
+
+  app.get("/api/notifications", async (req, res) => {
+    const userId = req.query.userId as string;
+    if (!userId) return res.status(400).json({ message: "userId required" });
+    const items = await storage.getNotifications(userId);
+    res.json(items);
+  });
+
+  app.patch("/api/notifications/:id/read", async (req, res) => {
+    await storage.markNotificationRead(req.params.id);
+    res.status(204).send();
+  });
+
+  app.post("/api/notifications/read-all", async (req, res) => {
+    const userId = req.body.userId as string;
+    if (!userId) return res.status(400).json({ message: "userId required" });
+    await storage.markAllNotificationsRead(userId);
+    res.status(204).send();
   });
 
   return httpServer;

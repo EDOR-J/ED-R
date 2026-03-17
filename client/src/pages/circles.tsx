@@ -6,10 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   useActiveListenChats, useUserCircles, useCreateListenChat, useJoinListenChat,
-  useLibrary, useFriends, useFriendsStatuses,
-  type ApiListenChat, type ApiLibraryItem, type ApiUserStatus,
+  useLibrary, useFriends, useFriendsStatuses, useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead,
+  type ApiListenChat, type ApiLibraryItem, type ApiUserStatus, type ApiNotification,
 } from "@/lib/api";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, canHostCircle } from "@/hooks/use-auth";
 import { startRoom, loadSession } from "@/lib/edorSession";
 import { useViewTransitionNavigate } from "@/hooks/use-view-transition";
 import { useLocation as useWouterLocation } from "wouter";
@@ -18,7 +18,8 @@ import { toast } from "sonner";
 import {
   Plus, Users, Play, Lock, Globe, Crown, Music, Headphones,
   ChevronRight, Settings2, Shield, UserPlus, Radio, Disc,
-  Sparkles, Clock, Hash, Eye, EyeOff, MessageSquare, X
+  Sparkles, Clock, Hash, Eye, EyeOff, MessageSquare, X,
+  Bell, BellRing, Check
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -37,10 +38,15 @@ export default function CirclesHub() {
   const { data: friends } = useFriends(userId);
   const { data: friendStatuses } = useFriendsStatuses(userId);
 
+  const { data: notifs } = useNotifications(userId);
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
   const createChat = useCreateListenChat();
   const joinChat = useJoinListenChat();
+  const userCanHost = canHostCircle(user);
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [notifsOpen, setNotifsOpen] = useState(false);
   const [createStep, setCreateStep] = useState<CreateStep>("track");
   const [selectedTrack, setSelectedTrack] = useState<ApiLibraryItem | null>(null);
   const [circleName, setCircleName] = useState("");
@@ -76,6 +82,10 @@ export default function CirclesHub() {
   const friendsListening = useMemo(() => {
     return (friendStatuses || []).filter(s => s.isOnline && s.currentContentTitle);
   }, [friendStatuses]);
+
+  const unreadNotifs = useMemo(() => {
+    return (notifs || []).filter(n => !n.read);
+  }, [notifs]);
 
   function resetCreate() {
     setCreateStep("track");
@@ -163,6 +173,87 @@ export default function CirclesHub() {
             <p className="text-xs text-white/40 mt-0.5">Start or join a shared listening session</p>
           </div>
           <div className="flex gap-2">
+            <Dialog open={notifsOpen} onOpenChange={setNotifsOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-2xl border-white/10 relative" data-testid="button-notifs">
+                  {unreadNotifs.length > 0 ? (
+                    <BellRing className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Bell className="h-4 w-4 text-white/60" />
+                  )}
+                  {unreadNotifs.length > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 min-w-[16px] rounded-full bg-primary text-[9px] text-black font-bold flex items-center justify-center px-1">
+                      {unreadNotifs.length}
+                    </span>
+                  )}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-[#0A0A0A] border-white/10 text-white max-h-[70vh] flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-4 border-b border-white/5 flex flex-row items-center justify-between">
+                  <DialogTitle className="font-bold flex items-center gap-2">
+                    <Bell className="h-5 w-5 text-primary" />
+                    Notifications
+                  </DialogTitle>
+                  {unreadNotifs.length > 0 && (
+                    <button
+                      className="text-[10px] font-bold text-primary uppercase tracking-wider hover:text-primary/80"
+                      onClick={() => markAllRead.mutate(userId)}
+                      data-testid="button-mark-all-read"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </DialogHeader>
+                <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+                  {(!notifs || notifs.length === 0) ? (
+                    <div className="flex flex-col items-center py-12 text-white/20">
+                      <Bell className="h-8 w-8 mb-2" />
+                      <p className="text-sm">No notifications yet</p>
+                    </div>
+                  ) : (
+                    notifs.map(n => (
+                      <Card
+                        key={n.id}
+                        className={`p-3 rounded-2xl cursor-pointer transition-all ${
+                          n.read ? "bg-white/[0.02] border-white/5" : "bg-primary/5 border-primary/20"
+                        }`}
+                        onClick={() => {
+                          if (!n.read) markRead.mutate(n.id);
+                          if (n.circleId) {
+                            handleJoin({ id: n.circleId, contentId: "", contentTitle: "", contentArtist: "", audioUrl: "", createdBy: "", isActive: true, isPrivate: false, isRemote: false, maxMembers: 20, allowChat: true, locationId: null, name: "", createdAt: "" } as ApiListenChat);
+                            setNotifsOpen(false);
+                          }
+                        }}
+                        data-testid={`notif-${n.id}`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${
+                            n.read ? "bg-white/5" : "bg-primary/10"
+                          }`}>
+                            {n.type === "circle_started" ? (
+                              <Radio className={`h-4 w-4 ${n.read ? "text-white/30" : "text-primary"}`} />
+                            ) : (
+                              <Bell className={`h-4 w-4 ${n.read ? "text-white/30" : "text-primary"}`} />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-bold ${n.read ? "text-white/40" : "text-white/90"}`}>{n.title}</p>
+                            <p className={`text-[11px] mt-0.5 ${n.read ? "text-white/20" : "text-white/50"}`}>{n.message}</p>
+                            <p className="text-[9px] text-white/20 mt-1">
+                              {new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </p>
+                          </div>
+                          {!n.read && (
+                            <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />
+                          )}
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+
             <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="icon" className="h-10 w-10 rounded-2xl border-white/10" data-testid="button-circle-settings">
@@ -180,12 +271,13 @@ export default function CirclesHub() {
               </DialogContent>
             </Dialog>
 
-            <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) resetCreate(); }}>
-              <DialogTrigger asChild>
-                <Button className="h-10 rounded-2xl gap-2 font-bold text-sm px-4" data-testid="button-create-circle">
-                  <Plus className="h-4 w-4" /> New Circle
-                </Button>
-              </DialogTrigger>
+            {userCanHost ? (
+              <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) resetCreate(); }}>
+                <DialogTrigger asChild>
+                  <Button className="h-10 rounded-2xl gap-2 font-bold text-sm px-4" data-testid="button-create-circle">
+                    <Plus className="h-4 w-4" /> New Circle
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="bg-[#0A0A0A] border-white/10 text-white max-h-[85vh] flex flex-col p-0 overflow-hidden">
                 <DialogHeader className="p-4 border-b border-white/10">
                   <DialogTitle className="text-center font-bold">
@@ -368,6 +460,15 @@ export default function CirclesHub() {
                 </AnimatePresence>
               </DialogContent>
             </Dialog>
+            ) : (
+              <Button
+                className="h-10 rounded-2xl gap-2 font-bold text-sm px-4 opacity-60"
+                onClick={() => toast("Hosting circles requires a paid subscription", { icon: "👑" })}
+                data-testid="button-create-circle-locked"
+              >
+                <Crown className="h-4 w-4" /> Host
+              </Button>
+            )}
           </div>
         </div>
 

@@ -9,6 +9,7 @@ interface GuestUser {
   email: string | null;
   profileImageUrl: string | null;
   role: UserRole;
+  isPaid: boolean;
 }
 
 const STORAGE_KEY = "edor_guest_session";
@@ -19,13 +20,14 @@ function getStoredUser(): GuestUser | null {
   try {
     const parsed = JSON.parse(stored);
     if (!parsed.role) parsed.role = "user";
+    if (parsed.isPaid === undefined) parsed.isPaid = false;
     return parsed;
   } catch {
     return null;
   }
 }
 
-export function loginGuest(role: UserRole = "user") {
+export function loginGuest(role: UserRole = "user", isPaid: boolean = false) {
   const roleLabels: Record<UserRole, string> = {
     admin: "Admin",
     artist: "Artist",
@@ -38,9 +40,15 @@ export function loginGuest(role: UserRole = "user") {
     email: null,
     profileImageUrl: null,
     role,
+    isPaid: role === "admin" || role === "artist" ? true : isPaid,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(guest));
   return guest;
+}
+
+export function canHostCircle(user: GuestUser | null): boolean {
+  if (!user) return false;
+  return user.isPaid || user.role === "admin" || user.role === "artist";
 }
 
 export function logoutGuest() {

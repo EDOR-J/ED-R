@@ -669,3 +669,52 @@ export function useSeedSocial() {
     },
   });
 }
+
+// ── Notifications ────────────────────────────────────────
+
+export type ApiNotification = {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  circleId: string | null;
+  fromUserId: string | null;
+  fromDisplayName: string | null;
+  read: boolean;
+  createdAt: string;
+};
+
+export function useNotifications(userId: string) {
+  return useQuery<ApiNotification[]>({
+    queryKey: ["/api/notifications", userId],
+    queryFn: async () => {
+      const res = await fetch(`/api/notifications?userId=${userId}`);
+      return res.json();
+    },
+    enabled: !!userId,
+    refetchInterval: 10_000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("PATCH", `/api/notifications/${id}/read`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      await apiRequest("POST", "/api/notifications/read-all", { userId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+    },
+  });
+}
