@@ -117,7 +117,7 @@ All routes are in `server/routes.ts`:
 - `/listen-chat` — Listen Chat rooms (group listening with built-in chat for friends with shared tracks)
 - `/admin` — Admin panel (passcode-protected, manages locations/content/assignments)
 - `/upload` — Content upload page for artists/clients (drag-and-drop audio, artwork, video uploads via object storage)
-- `/artist` — Artist dashboard with listener stats, uploaded content list, quick actions, campaigns
+- `/artist` — Artist dashboard with tabs: Overview (stats, quick actions, content list) and Campaigns (create/manage assignments to nodes with time windows, per-node metrics, live/upcoming/ended campaign sections)
 - `/login` — Guest login page (username: "guest", password: "edor")
 - `/profile` — User profile and settings page
 

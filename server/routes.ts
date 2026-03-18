@@ -90,14 +90,20 @@ export async function registerRoutes(
   });
 
   app.post("/api/assignments", async (req, res) => {
-    const parsed = insertAssignmentSchema.safeParse(req.body);
+    const body = { ...req.body };
+    if (typeof body.startAt === "string") body.startAt = new Date(body.startAt);
+    if (typeof body.endAt === "string") body.endAt = new Date(body.endAt);
+    const parsed = insertAssignmentSchema.safeParse(body);
     if (!parsed.success) return res.status(400).json({ message: parsed.error.message });
     const item = await storage.createAssignment(parsed.data);
     res.status(201).json(item);
   });
 
   app.patch("/api/assignments/:id", async (req, res) => {
-    const updated = await storage.updateAssignment(req.params.id, req.body);
+    const body = { ...req.body };
+    if (typeof body.startAt === "string") body.startAt = new Date(body.startAt);
+    if (typeof body.endAt === "string") body.endAt = new Date(body.endAt);
+    const updated = await storage.updateAssignment(req.params.id, body);
     if (!updated) return res.status(404).json({ message: "Assignment not found" });
     res.json(updated);
   });
