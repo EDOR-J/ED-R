@@ -34,6 +34,7 @@ export default function ContentPage() {
   const locId = q.get("loc") ?? session.selectedLocationId;
   const location = pulseData?.locations.find((l) => l.id === locId);
   const mode = (q.get("mode") ?? session.mode) as any;
+  const fromNfc = q.get("nfc") === "1";
 
   const isLatestForThisContent = latestSession?.contentId === contentId && latestSession?.nodeId === locId;
   const canStartCircle = location?.isPermanent && isLatestForThisContent;
@@ -108,6 +109,16 @@ export default function ContentPage() {
     el.addEventListener("ended", onEnded);
     return () => el.removeEventListener("ended", onEnded);
   }, []);
+
+  // Autoplay when arriving via NFC
+  useEffect(() => {
+    if (!fromNfc || !content) return;
+    const el = audioRef.current;
+    if (!el) return;
+    el.play().then(() => setPlaying(true)).catch(() => {
+      // Browser blocked autoplay — the pulsing play button guides the user
+    });
+  }, [fromNfc, content]);
 
   async function togglePlay() {
     const el = audioRef.current;
@@ -193,7 +204,7 @@ export default function ContentPage() {
         </div>
 
         <div className="mt-5 grid gap-2">
-          <audio ref={audioRef} src={content.audioUrl} preload="none" />
+          <audio ref={audioRef} src={content.audioUrl} preload={fromNfc ? "auto" : "none"} />
 
           {location?.isPermanent ? (
             <Card className="bg-primary/5 border-primary/20 rounded-2xl p-4 mb-2">
@@ -247,14 +258,14 @@ export default function ContentPage() {
           )}
 
           <Button
-            className="h-12 w-full rounded-2xl"
+            className={`h-12 w-full rounded-2xl transition-all ${fromNfc && !playing ? "animate-pulse shadow-lg shadow-amber-400/30 scale-[1.02]" : ""}`}
             onClick={togglePlay}
             data-testid="button-play"
           >
             <span className="mr-2 inline-flex" aria-hidden>
               {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </span>
-            {playing ? "Pause preview" : "Play preview"}
+            {playing ? "Pause" : fromNfc ? "Tap to play" : "Play preview"}
           </Button>
 
           <Button

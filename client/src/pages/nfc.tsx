@@ -30,12 +30,12 @@ export default function NfcPage() {
   const unlockMutation = useUnlock();
   const session = loadSession();
 
-  const doUnlock = useCallback(async (location: NfcLocation, pickedContent: ApiContent) => {
+  const doUnlock = useCallback(async (location: NfcLocation, pickedContent: ApiContent, assignmentMode: string) => {
     try {
       await unlockMutation.mutateAsync({
         nodeId: location.id,
         contentId: pickedContent.id,
-        mode: session.mode,
+        mode: assignmentMode,
       });
     } catch {
       // still continue even if unlock fails
@@ -44,10 +44,10 @@ export default function NfcPage() {
     setTimeout(() => {
       navigateWithTransition(
         setLocation,
-        `/content/${pickedContent.id}?loc=${location.id}&mode=${session.mode}&nfc=1`,
+        `/content/${pickedContent.id}?loc=${location.id}&mode=${assignmentMode}&nfc=1`,
       );
     }, 2200);
-  }, [session.mode, setLocation]);
+  }, [setLocation]);
 
   useEffect(() => {
     if (!nfcId || !pulseData) return;
@@ -63,10 +63,10 @@ export default function NfcPage() {
         const location: NfcLocation = await res.json();
         setLoc(location);
 
-        const picked = pickContentForLocationMode(pulseData!, {
-          locationId: location.id,
-          mode: session.mode as PulseMode,
-        });
+        // NFC bypasses mode — try discover first, then park
+        const picked =
+          pickContentForLocationMode(pulseData!, { locationId: location.id, mode: "discover" }) ??
+          pickContentForLocationMode(pulseData!, { locationId: location.id, mode: "park" });
 
         if (!picked) {
           setPhase("no-drop");
@@ -75,7 +75,7 @@ export default function NfcPage() {
 
         setContent(picked.content);
         setPhase("found");
-        doUnlock(location, picked.content);
+        doUnlock(location, picked.content, picked.assignment.mode);
       } catch {
         setErrorMsg("Couldn't reach the server. Check your connection.");
         setPhase("error");
