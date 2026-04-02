@@ -233,7 +233,7 @@ export default function HomePage() {
               EDØR
             </motion.h1>
             <p className="text-[11px] font-medium tracking-[0.22em] uppercase text-white/35">
-              Place-based music &amp; culture
+              A NEW WAY TO DISCOVER MUSIC
             </p>
 
             <div
