@@ -173,7 +173,7 @@ function UnlockReveal({
 
 type Status =
   | { state: "asking" }
-  | { state: "denied" }
+  | { state: "denied"; reason?: string }
   | { state: "ready"; locationId: string; distanceMeters?: number };
 
 export default function PulsePage() {
@@ -231,49 +231,42 @@ export default function PulsePage() {
     }
   }, [joinCircleId, joinLocId, locations, setLocation]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function run() {
-      if (!navigator.geolocation) {
-        if (!cancelled) setStatus({ state: "denied" });
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          if (cancelled) return;
-          const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-          setUserCoords(coords);
-          const nearest = getNearestLocation(
-            { lat: coords[0], lng: coords[1] },
-            locations,
-          );
-          if (!nearest) {
-            setStatus({ state: "denied" });
-            return;
-          }
-          setStatus({
-            state: "ready",
-            locationId: nearest.location.id,
-            distanceMeters: nearest.distanceMeters,
-          });
-        },
-        () => {
-          if (cancelled) return;
-          setStatus({ state: "denied" });
-        },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 },
-      );
+  const requestLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setStatus({ state: "denied", reason: "Geolocation is not supported by this browser." });
+      return;
     }
-
-    run();
-    return () => {
-      cancelled = true;
-    };
+    setStatus({ state: "asking" });
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setUserCoords(coords);
+        const nearest = getNearestLocation({ lat: coords[0], lng: coords[1] }, locations);
+        if (!nearest) {
+          setStatus({ state: "denied", reason: "No Pulse nodes found near you. Try the map below." });
+          return;
+        }
+        setStatus({ state: "ready", locationId: nearest.location.id, distanceMeters: nearest.distanceMeters });
+      },
+      (err) => {
+        if (err.code === 1) {
+          setStatus({ state: "denied", reason: "Location permission denied. Allow it in your browser settings, or pick a node below." });
+        } else if (err.code === 2) {
+          setStatus({ state: "denied", reason: "Location unavailable. Check your signal and try again." });
+        } else {
+          setStatus({ state: "denied", reason: "Location request timed out. Try again or pick a node manually." });
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
   }, [locations]);
 
-  const center = userCoords || [37.7749, -122.4194];
+  useEffect(() => {
+    if (locations.length > 0) requestLocation();
+  }, [locations]);
+
+  const firstNode = locations[0];
+  const center: [number, number] = userCoords ?? (firstNode ? [firstNode.lat, firstNode.lng] : [51.505, -0.09]);
 
   const handleRevealContinue = useCallback(() => {
     if (!unlockReveal) return;
@@ -439,13 +432,22 @@ export default function PulsePage() {
               <div className="mt-0.5 rounded-2xl border border-white/10 bg-white/5 p-2">
                 <ShieldAlert className="h-5 w-5 text-amber-300" />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="text-sm font-semibold text-white">Manual Selection</p>
-                <p className="mt-1 text-xs text-white/60">Choose a location from the map or list below.</p>
+                <p className="mt-1 text-xs text-white/60">
+                  {status.reason ?? "Choose a location from the map or list below."}
+                </p>
               </div>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 space-y-2">
+              <Button
+                variant="outline"
+                className="w-full h-10 rounded-2xl border-white/10 text-white/70 hover:text-white text-xs"
+                onClick={requestLocation}
+              >
+                Try GPS again
+              </Button>
               <Select value={manualLocationId} onValueChange={setManualLocationId}>
                 <SelectTrigger className="h-12 rounded-2xl border-white/10 bg-white/5 text-white">
                   <SelectValue placeholder="Select a Pulse" />
@@ -459,7 +461,7 @@ export default function PulsePage() {
                 </SelectContent>
               </Select>
               <Button
-                className="w-full h-12 rounded-2xl mt-3 animate-sparkle"
+                className="w-full h-12 rounded-2xl animate-sparkle"
                 onClick={() => continueWith(manualLocationId)}
               >
                 Continue
