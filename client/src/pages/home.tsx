@@ -1,7 +1,7 @@
 import Shell from "@/components/edor/shell";
 import { Link, useLocation } from "wouter";
 import { navigateWithTransition } from "@/hooks/use-view-transition";
-import { usePulseData, useDrops, getNearestLocation } from "@/lib/api";
+import { usePulseData, useDrops, getNearestLocation, PulseMode } from "@/lib/api";
 import { loadSession, setMode, startRoom } from "@/lib/edorSession";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { MapPin, Sparkles, Scan, Music } from "lucide-react";
@@ -80,7 +80,7 @@ export default function HomePage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const role = user?.role ?? "user";
-  const [mode, setModeState] = useState(loadSession().mode);
+  const [mode, setModeState] = useState<PulseMode>(loadSession().mode as PulseMode);
   const { data: pulseData, isLoading: pulseLoading } = usePulseData();
   const { data: drops, isLoading: dropsLoading } = useDrops();
   const q = useQuery();
@@ -212,7 +212,6 @@ export default function HomePage() {
         animate="show"
         className="space-y-10"
       >
-        {/* ── Hero wordmark ──────────────────────────────── */}
         <motion.div variants={stagger.item} className="relative">
           <div
             className="relative rounded-3xl overflow-hidden px-6 pt-10 pb-8 flex flex-col items-center gap-2"
@@ -237,7 +236,6 @@ export default function HomePage() {
               Place-based music &amp; culture
             </p>
 
-            {/* Ambient orb */}
             <div
               className="absolute -top-12 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full blur-3xl pointer-events-none"
               style={{
@@ -250,16 +248,13 @@ export default function HomePage() {
           </div>
         </motion.div>
 
-        {/* ── Mode pill + Pulse orb ──────────────────────── */}
         <motion.div variants={stagger.item} className="flex flex-col items-center gap-6">
-          {/* Slim mode pill */}
           <div className="flex items-center gap-2">
             <div
               className="relative flex rounded-full p-1 gap-1"
               style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
               data-testid="text-mode-label"
             >
-              {/* sliding highlight */}
               <motion.div
                 className="absolute top-1 bottom-1 rounded-full"
                 animate={{ left: isDiscover ? "4px" : "calc(50% + 2px)", right: isDiscover ? "calc(50% + 2px)" : "4px" }}
@@ -268,7 +263,7 @@ export default function HomePage() {
               />
               <button
                 className={`relative z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors duration-200 ${isDiscover ? "text-purple-200" : "text-white/40"}`}
-                onClick={() => { setModeState("discover"); setMode("discover" as any); }}
+                onClick={() => { setModeState("discover"); setMode("discover"); }}
                 data-testid="toggle-discover"
               >
                 <Sparkles className="h-3.5 w-3.5" />
@@ -276,7 +271,7 @@ export default function HomePage() {
               </button>
               <button
                 className={`relative z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors duration-200 ${!isDiscover ? "text-cyan-200" : "text-white/40"}`}
-                onClick={() => { setModeState("park"); setMode("park" as any); }}
+                onClick={() => { setModeState("park"); setMode("park"); }}
                 data-testid="toggle-park"
               >
                 <MapPin className="h-3.5 w-3.5" />
@@ -284,7 +279,6 @@ export default function HomePage() {
               </button>
             </div>
 
-            {/* Scan to Join — compact icon button */}
             <Dialog>
               <DialogTrigger asChild>
                 <button
@@ -311,9 +305,7 @@ export default function HomePage() {
             </Dialog>
           </div>
 
-          {/* Pulse orb */}
           <div className="relative flex items-center justify-center">
-            {/* Radiating rings */}
             {[0, 1, 2].map(i => (
               <motion.div
                 key={i}
@@ -328,14 +320,12 @@ export default function HomePage() {
               />
             ))}
 
-            {/* Ice particles */}
             <AnimatePresence>
               {particles.map(id => (
                 <IceCrystal key={id} id={id} onComplete={removeParticle} />
               ))}
             </AnimatePresence>
 
-            {/* The button itself */}
             <motion.button
               className={`relative z-20 h-[120px] w-[120px] rounded-full flex items-center justify-center animate-sparkle ${isHolding ? "pulse-btn-holding" : ""}`}
               style={{
@@ -370,7 +360,6 @@ export default function HomePage() {
           </p>
         </motion.div>
 
-        {/* ── Nearby Artists ─────────────────────────────── */}
         {(pulseData?.contents ?? []).length > 0 && (
           <motion.section variants={stagger.item}>
             <div className="flex items-center justify-between px-0.5 mb-4">
@@ -410,11 +399,10 @@ export default function HomePage() {
           </motion.section>
         )}
 
-        {/* ── This week's drops ──────────────────────────── */}
         <motion.section variants={stagger.item}>
           <div className="flex items-center justify-between px-0.5 mb-4">
             <h3 className="font-serif text-base font-bold tracking-tight text-white" data-testid="text-drops-title">
-              This week's drops
+              This week's Pulse drops
             </h3>
             <span className="text-[10px] text-white/30 font-medium uppercase tracking-widest" data-testid="text-drops-subtitle">
               Limited rotations
@@ -437,7 +425,6 @@ export default function HomePage() {
                       className={`w-44 rounded-2xl border bg-gradient-to-br to-black/30 ${fromColor} ${borderColor} p-3.5 flex flex-col gap-2 group-active:scale-[0.97] transition-transform`}
                       style={{ boxShadow: `0 4px 24px ${hexColor}12` }}
                     >
-                      {/* Artwork swatch */}
                       <div
                         className="h-10 w-10 rounded-xl border flex items-center justify-center"
                         style={{ borderColor: `${hexColor}30`, background: `${hexColor}18` }}
@@ -445,8 +432,6 @@ export default function HomePage() {
                       >
                         <Music className="h-4 w-4" style={{ color: hexColor, opacity: 0.7 }} />
                       </div>
-
-                      {/* Text */}
                       <div className="min-w-0">
                         <p className="text-[13px] font-semibold text-white leading-tight truncate" data-testid={`text-title-${content.id}`}>
                           {content.title}
@@ -455,8 +440,6 @@ export default function HomePage() {
                           {content.creator}
                         </p>
                       </div>
-
-                      {/* Location badge */}
                       <div className="flex items-center gap-1.5 mt-auto">
                         <span
                           className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
