@@ -24,8 +24,10 @@ export function MiniPlayer() {
   const data = loadEdorData();
   const session = loadSession();
   
-  // Get current playing content (mocking it from session or first content)
-  const currentContent = data.contents.find(c => c.id === session.lastContentId) || data.contents[0];
+  // Only show when something has actually been explicitly played
+  const currentContent = session.lastContentId
+    ? data.contents.find(c => c.id === session.lastContentId) ?? null
+    : null;
   
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -41,7 +43,7 @@ export function MiniPlayer() {
   if (!currentContent) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col items-end gap-2" style={{ viewTransitionName: "mini-player" } as React.CSSProperties}>
+    <div className="fixed top-16 right-4 z-40 flex flex-col items-end gap-2" style={{ viewTransitionName: "mini-player" } as React.CSSProperties}>
       <audio ref={audioRef} src={currentContent.audioUrl} loop />
       
       <AnimatePresence mode="wait">
