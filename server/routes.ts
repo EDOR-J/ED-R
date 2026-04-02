@@ -133,12 +133,12 @@ export async function registerRoutes(
     const seen = new Set<string>();
     const drops: Array<{ assignment: any; content: any; location: any }> = [];
     for (const a of active) {
-      if (seen.has(a.contentId)) continue;
+      if (seen.has(a.locationId)) continue;
       const c = conts.find((x) => x.id === a.contentId);
       const l = locs.find((x) => x.id === a.locationId);
       if (!c || !l) continue;
       drops.push({ assignment: a, content: c, location: l });
-      seen.add(a.contentId);
+      seen.add(a.locationId);
       if (drops.length >= 10) break;
     }
     res.json(drops);

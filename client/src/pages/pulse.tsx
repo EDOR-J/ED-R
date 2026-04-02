@@ -1,7 +1,6 @@
 import Shell from "@/components/edor/shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
@@ -9,8 +8,9 @@ import { navigateWithTransition } from "@/hooks/use-view-transition";
 import { usePulseData, useUnlock, useJoinListenChat, getNearestLocation, pickContentForLocationMode, type ApiLocation, type ApiContent, type PulseMode } from "@/lib/api";
 import { loadSession, setSelectedLocation, startRoom } from "@/lib/edorSession";
 import { useAuth } from "@/hooks/use-auth";
-import { MapPin, ShieldAlert, X, Music, Headphones } from "lucide-react";
-import { Map, Marker, Overlay } from "pigeon-maps";
+import { MapPin, ShieldAlert, X, Music, Headphones, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Map, Overlay } from "pigeon-maps";
 import { motion, AnimatePresence } from "framer-motion";
 
 function triggerHeartbeatVibration() {
@@ -185,19 +185,12 @@ export default function PulsePage() {
   const { user } = useAuth();
 
   const locations = data?.locations ?? [];
-  const contents = data?.contents ?? [];
 
   const [status, setStatus] = useState<Status>({ state: "asking" });
-  const [manualLocationId, setManualLocationId] = useState<string>("");
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
   const [activeLocation, setActiveLocation] = useState<ApiLocation | null>(null);
   const [unlockReveal, setUnlockReveal] = useState<{ content: ApiContent; locationName: string; locationId: string } | null>(null);
 
-  useEffect(() => {
-    if (locations.length > 0 && !manualLocationId) {
-      setManualLocationId(locations[0]?.id ?? "");
-    }
-  }, [locations, manualLocationId]);
 
   const queryParams = new URLSearchParams(window.location.search);
   const joinCircleId = queryParams.get("joinCircle");
@@ -347,19 +340,48 @@ export default function PulsePage() {
         <Map 
           height={400} 
           defaultCenter={center as [number, number]} 
-          defaultZoom={13}
+          defaultZoom={14}
           boxClassname="edor-map"
         >
-          {locations.map((loc) => (
-            <Marker 
-              key={loc.id} 
-              anchor={[loc.lat, loc.lng]} 
-              color={activeLocation?.id === loc.id ? "hsl(var(--primary))" : "hsl(var(--accent))"}
-              onClick={() => setActiveLocation(loc)}
-            />
-          ))}
+          {locations.map((loc) => {
+            const isActive = activeLocation?.id === loc.id;
+            return (
+              <Overlay key={loc.id} anchor={[loc.lat, loc.lng]}>
+                <button
+                  onPointerUp={(e) => { e.stopPropagation(); setActiveLocation(loc); }}
+                  style={{ transform: "translate(-50%, -100%)" }}
+                  className="flex flex-col items-center gap-0.5 cursor-pointer group select-none"
+                  data-testid={`button-map-node-${loc.id}`}
+                >
+                  <div
+                    className={[
+                      "w-9 h-9 rounded-full flex items-center justify-center shadow-lg border-2 transition-all duration-150",
+                      isActive
+                        ? "bg-amber-400 border-white scale-125 shadow-amber-400/50"
+                        : "bg-black/70 border-amber-400 group-hover:scale-110"
+                    ].join(" ")}
+                  >
+                    <MapPin className={["h-4 w-4", isActive ? "text-black" : "text-amber-400"].join(" ")} />
+                  </div>
+                  <div
+                    className={[
+                      "px-1.5 py-0.5 rounded-full text-[9px] font-bold whitespace-nowrap shadow",
+                      isActive ? "bg-amber-400 text-black" : "bg-black/75 text-white/80"
+                    ].join(" ")}
+                  >
+                    {loc.name}
+                  </div>
+                </button>
+              </Overlay>
+            );
+          })}
           {userCoords && (
-            <Marker anchor={userCoords} color="white" />
+            <Overlay anchor={userCoords}>
+              <div
+                style={{ transform: "translate(-50%, -50%)" }}
+                className="w-3 h-3 rounded-full bg-white border-2 border-black shadow-lg"
+              />
+            </Overlay>
           )}
         </Map>
 
@@ -395,80 +417,107 @@ export default function PulsePage() {
         </AnimatePresence>
       </div>
 
-      <Card className="edor-noise glass rounded-3xl p-5" data-testid="card-pulse-status">
-        {status.state === "asking" ? (
-          <div>
-            <p className="text-sm text-white/80" data-testid="text-asking">
-              Requesting your location…
-            </p>
-            <p className="mt-1 text-xs text-white/55" data-testid="text-asking-sub">
-              We use it only to find the nearest Pulse.
-            </p>
-          </div>
-        ) : null}
-
-        {status.state === "ready" && !activeLocation && (
-          <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-white/55" data-testid="text-nearest-label">
-              Nearest Pulse Detected
-            </p>
-            <p className="mt-2 text-lg font-semibold text-white">
-              {locations.find(l => l.id === status.locationId)?.name}
-            </p>
-            <div className="mt-4">
-              <Button
-                className="w-full h-12 rounded-2xl animate-sparkle"
-                onClick={() => continueWith(status.locationId)}
-              >
-                Unlock this Pulse
-              </Button>
+      <Card className="edor-noise glass rounded-3xl p-5 space-y-4" data-testid="card-pulse-status">
+        {/* GPS status banner */}
+        {status.state === "asking" && (
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full border border-white/10 bg-white/5 flex items-center justify-center shrink-0 animate-pulse">
+              <MapPin className="h-4 w-4 text-white/40" />
             </div>
+            <div>
+              <p className="text-sm text-white/80" data-testid="text-asking">Requesting your location…</p>
+              <p className="text-xs text-white/40">Or tap a node below to pulse manually</p>
+            </div>
+          </div>
+        )}
+
+        {status.state === "ready" && (
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-2" data-testid="text-nearest-label">
+              Nearest Pulse
+            </p>
+            <Button
+              className="w-full h-12 rounded-2xl animate-sparkle"
+              onClick={() => continueWith(status.locationId)}
+              data-testid="button-unlock-nearest"
+            >
+              Unlock {locations.find(l => l.id === status.locationId)?.name ?? "this Pulse"}
+            </Button>
           </div>
         )}
 
         {status.state === "denied" && (
-          <div>
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-2xl border border-white/10 bg-white/5 p-2">
-                <ShieldAlert className="h-5 w-5 text-amber-300" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-white">Manual Selection</p>
-                <p className="mt-1 text-xs text-white/60">
-                  {status.reason ?? "Choose a location from the map or list below."}
-                </p>
-              </div>
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-xl border border-white/10 bg-white/5 p-2 shrink-0">
+              <ShieldAlert className="h-4 w-4 text-amber-300" />
             </div>
-
-            <div className="mt-4 space-y-2">
-              <Button
-                variant="outline"
-                className="w-full h-10 rounded-2xl border-white/10 text-white/70 hover:text-white text-xs"
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-white">Manual Selection</p>
+              <p className="mt-0.5 text-xs text-white/55 leading-relaxed">
+                {status.reason ?? "Choose a node below."}
+              </p>
+              <button
+                className="mt-2 text-xs text-amber-400 underline underline-offset-2"
                 onClick={requestLocation}
+                data-testid="button-retry-gps"
               >
                 Try GPS again
-              </Button>
-              <Select value={manualLocationId} onValueChange={setManualLocationId}>
-                <SelectTrigger className="h-12 rounded-2xl border-white/10 bg-white/5 text-white">
-                  <SelectValue placeholder="Select a Pulse" />
-                </SelectTrigger>
-                <SelectContent className="border-white/10 bg-black">
-                  {locations.map((l) => (
-                    <SelectItem key={l.id} value={l.id}>
-                      {l.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                className="w-full h-12 rounded-2xl animate-sparkle"
-                onClick={() => continueWith(manualLocationId)}
-              >
-                Continue
-              </Button>
+              </button>
             </div>
           </div>
         )}
+
+        {/* Always-visible tappable node list */}
+        <div data-testid="section-node-list">
+          <p className="text-[10px] uppercase tracking-widest text-white/30 font-bold mb-2 px-0.5">
+            {status.state === "ready" ? "All Nodes" : "Pulse Nodes"}
+          </p>
+          <div className="space-y-2">
+            {locations.map((loc) => {
+              const hasDrop = data
+                ? !!pickContentForLocationMode(data, { locationId: loc.id, mode: session.mode as PulseMode })
+                : false;
+              const isNearest = status.state === "ready" && status.locationId === loc.id;
+              return (
+                <button
+                  key={loc.id}
+                  onClick={() => continueWith(loc.id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition active:scale-[0.98]",
+                    isNearest
+                      ? "bg-amber-400/10 border-amber-400/30 hover:bg-amber-400/15"
+                      : "bg-white/5 border-white/5 hover:bg-white/10"
+                  )}
+                  data-testid={`button-node-${loc.id}`}
+                >
+                  <div className={cn(
+                    "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border",
+                    isNearest
+                      ? "bg-amber-400/15 border-amber-400/30"
+                      : "bg-white/5 border-white/10"
+                  )}>
+                    <MapPin className={cn("h-4 w-4", isNearest ? "text-amber-400" : "text-white/40")} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={cn("text-sm font-semibold", isNearest ? "text-amber-300" : "text-white")}>
+                      {loc.name}
+                      {isNearest && <span className="ml-2 text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full">NEAREST</span>}
+                    </div>
+                    <div className="text-[11px] text-white/40 truncate mt-0.5">{loc.description}</div>
+                  </div>
+                  {hasDrop ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <div className="text-[9px] uppercase font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full">Live</div>
+                      <ChevronRight className="h-3.5 w-3.5 text-white/20" />
+                    </div>
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5 text-white/15 shrink-0" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </Card>
 
       <AnimatePresence>
