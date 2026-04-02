@@ -10,6 +10,7 @@ import {
 } from "@shared/schema";
 import { authStorage } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { registerAuthRoutes } from "./auth";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -17,6 +18,7 @@ export async function registerRoutes(
 ): Promise<Server> {
 
   registerObjectStorageRoutes(app);
+  registerAuthRoutes(app);
 
   // ── Locations ──────────────────────────────────────────
   app.get("/api/locations", async (_req, res) => {

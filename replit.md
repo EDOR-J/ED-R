@@ -134,14 +134,25 @@ All routes are in `server/routes.ts`:
 - **connect-pg-simple**: Session storage in PostgreSQL
 
 ### Authentication
-- **Guest Login**: Client-side localStorage authentication (username: "guest", password: "edor")
-  - Client hook: `client/src/hooks/use-auth.ts` (useAuth hook with UserRole type)
-  - Three user roles: `admin` (full access), `artist` (upload + dashboard + stats), `user` (listener, no admin/upload)
-  - Role selected at login, stored in localStorage session
-  - Role-based route protection via `RoleRoute` component in App.tsx
-  - `/admin` restricted to admin role
-  - `/upload` and `/artist` restricted to artist + admin roles
-  - Navigation links conditionally shown based on role
+- **Auth System**: Hybrid server + localStorage authentication
+  - `server/auth.ts` — auth routes (register, login/email, login/google, me, logout)
+  - Session middleware: `express-session` + `connect-pg-simple` via `getSession()` from replitAuth.ts
+  - Password hashing: `bcryptjs` with salt rounds 12
+  - Google Sign-In: Google Identity Services (GSI) + `google-auth-library` token verification (requires `GOOGLE_CLIENT_ID` env var)
+  - Phone auth: UI stub, not yet implemented
+  - Client hook: `client/src/hooks/use-auth.ts` (useAuth, loginWithServerUser, loginGuest, canHostCircle)
+  - After server auth, user is stored in localStorage (same `edor_guest_session` key) so all existing hooks work
+  - `GET /api/auth/config` — returns googleClientId (null if not set)
+  - `POST /api/auth/register` — email/password signup
+  - `POST /api/auth/login/email` — email/password login
+  - `POST /api/auth/login/google` — Google ID token verification
+  - `GET /api/auth/me` — returns current session user
+  - `POST /api/auth/logout` — destroys session
+- **Login Page** (`/login`): Two tabs — "Join EDØR" (Google, phone stub, email/password, guest) and "Admin" (guest/edor credentials)
+- **User Roles**: `admin` (full access), `artist` (upload + dashboard + stats), `user` (listener)
+  - Role-based route protection via `RoleRoute` in App.tsx
+  - `/admin` restricted to admin role; `/upload` and `/artist` restricted to artist + admin
+- **Users Table** extended with: `password_hash`, `auth_provider`, `display_name`, `phone_number`, `role`
 
 ### Key NPM Packages
 - **drizzle-orm** + **drizzle-kit**: Database ORM and migration tooling
