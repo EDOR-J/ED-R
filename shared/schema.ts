@@ -12,6 +12,8 @@ export const locations = pgTable("locations", {
   lat: real("lat").notNull(),
   lng: real("lng").notNull(),
   isPermanent: boolean("is_permanent").notNull().default(false),
+  nfcEnabled: boolean("nfc_enabled").notNull().default(false),
+  nfcId: text("nfc_id"),
 });
 
 export const contents = pgTable("contents", {

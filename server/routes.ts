@@ -48,6 +48,13 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  // ── NFC ────────────────────────────────────────────────
+  app.get("/api/nfc/:nfcId", async (req, res) => {
+    const loc = await storage.getLocationByNfcId(req.params.nfcId);
+    if (!loc) return res.status(404).json({ message: "NFC tag not recognised" });
+    res.json(loc);
+  });
+
   // ── Contents ───────────────────────────────────────────
   app.get("/api/contents", async (_req, res) => {
     const items = await storage.getContents();

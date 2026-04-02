@@ -27,6 +27,7 @@ export interface IStorage {
   // Locations
   getLocations(): Promise<Location[]>;
   getLocation(id: string): Promise<Location | undefined>;
+  getLocationByNfcId(nfcId: string): Promise<Location | undefined>;
   createLocation(loc: InsertLocation): Promise<Location>;
   updateLocation(id: string, patch: Partial<InsertLocation>): Promise<Location | undefined>;
   deleteLocation(id: string): Promise<void>;
@@ -121,6 +122,11 @@ export class DatabaseStorage implements IStorage {
 
   async getLocation(id: string): Promise<Location | undefined> {
     const [loc] = await db.select().from(locations).where(eq(locations.id, id));
+    return loc;
+  }
+
+  async getLocationByNfcId(nfcId: string): Promise<Location | undefined> {
+    const [loc] = await db.select().from(locations).where(eq(locations.nfcId, nfcId));
     return loc;
   }
 

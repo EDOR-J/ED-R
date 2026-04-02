@@ -24,7 +24,7 @@ import { useState, useCallback } from "react";
 import { useLocation, Link } from "wouter";
 import { navigateWithTransition } from "@/hooks/use-view-transition";
 import { toast } from "sonner";
-import { BarChart3, MapPin, Navigation, ChevronDown, ChevronUp, Trash2, Check } from "lucide-react";
+import { BarChart3, MapPin, Navigation, ChevronDown, ChevronUp, Trash2, Check, Nfc, Copy } from "lucide-react";
 import { Map, Marker } from "pigeon-maps";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -406,9 +406,9 @@ function CoordPicker({
 }
 
 function LocationsPanel(props: {
-  locations: Array<{ id: string; name: string; description: string; lat: number; lng: number; isPermanent: boolean }>;
-  onCreate: (v: { name: string; description: string; lat: number; lng: number; isPermanent: boolean }) => void;
-  onUpdate: (id: string, patch: Partial<{ name: string; description: string; lat: number; lng: number; isPermanent: boolean }>) => void;
+  locations: Array<{ id: string; name: string; description: string; lat: number; lng: number; isPermanent: boolean; nfcEnabled?: boolean; nfcId?: string | null }>;
+  onCreate: (v: { name: string; description: string; lat: number; lng: number; isPermanent: boolean; nfcEnabled: boolean; nfcId: string }) => void;
+  onUpdate: (id: string, patch: Partial<{ name: string; description: string; lat: number; lng: number; isPermanent: boolean; nfcEnabled: boolean; nfcId: string | null }>) => void;
   onDelete: (id: string) => void;
 }) {
   const [name, setName] = useState("");
@@ -416,6 +416,8 @@ function LocationsPanel(props: {
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [isPermanent, setIsPermanent] = useState(false);
+  const [nfcEnabled, setNfcEnabled] = useState(false);
+  const [nfcSlug, setNfcSlug] = useState("");
   const [showForm, setShowForm] = useState(false);
 
   const handleCoord = useCallback((la: number, lo: number) => {
@@ -428,12 +430,14 @@ function LocationsPanel(props: {
       toast("Fill all fields", { description: "Name and map pin are required" });
       return;
     }
-    props.onCreate({ name: name.trim(), description: description.trim(), lat, lng, isPermanent });
+    props.onCreate({ name: name.trim(), description: description.trim(), lat, lng, isPermanent, nfcEnabled, nfcId: nfcSlug.trim() });
     setName("");
     setDescription("");
     setLat(null);
     setLng(null);
     setIsPermanent(false);
+    setNfcEnabled(false);
+    setNfcSlug("");
     setShowForm(false);
   };
 
@@ -493,6 +497,30 @@ function LocationsPanel(props: {
                   data-testid="switch-location-permanent"
                 />
               </div>
+              <div className="border-t border-white/5 pt-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Nfc className="h-3.5 w-3.5 text-amber-400" />
+                    <span className="text-xs text-white/70 font-medium">NFC tag</span>
+                  </div>
+                  <Switch
+                    checked={nfcEnabled}
+                    onCheckedChange={setNfcEnabled}
+                    data-testid="switch-location-nfc"
+                  />
+                </div>
+                {nfcEnabled && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-white/30">Slug to program on the tag (e.g. dauphine-dream)</p>
+                    <StyledInput
+                      value={nfcSlug}
+                      onChange={(e) => setNfcSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
+                      placeholder="my-node-slug"
+                      data-testid="input-location-nfc-id"
+                    />
+                  </div>
+                )}
+              </div>
               <button
                 onClick={handleAdd}
                 className="w-full h-11 rounded-2xl text-sm font-bold text-black animate-sparkle transition"
@@ -524,9 +552,9 @@ function LocationsPanel(props: {
 }
 
 function LocationRow(props: {
-  loc: { id: string; name: string; description: string; lat: number; lng: number; isPermanent: boolean };
+  loc: { id: string; name: string; description: string; lat: number; lng: number; isPermanent: boolean; nfcEnabled?: boolean; nfcId?: string | null };
   allNodes: Array<{ id: string; name: string; lat: number; lng: number }>;
-  onUpdate: (patch: Partial<{ name: string; description: string; lat: number; lng: number; isPermanent: boolean }>) => void;
+  onUpdate: (patch: Partial<{ name: string; description: string; lat: number; lng: number; isPermanent: boolean; nfcEnabled: boolean; nfcId: string | null }>) => void;
   onDelete: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -535,7 +563,10 @@ function LocationRow(props: {
   const [lat, setLat] = useState<number | null>(props.loc.lat);
   const [lng, setLng] = useState<number | null>(props.loc.lng);
   const [isPermanent, setIsPermanent] = useState(props.loc.isPermanent);
+  const [nfcEnabled, setNfcEnabled] = useState(props.loc.nfcEnabled ?? false);
+  const [nfcId, setNfcId] = useState(props.loc.nfcId ?? "");
   const [saved, setSaved] = useState(false);
+  const nfcUrl = nfcId ? `${window.location.origin}/nfc/${nfcId}` : "";
 
   const handleCoord = useCallback((la: number, lo: number) => {
     setLat(isNaN(la) ? null : la);
@@ -547,7 +578,7 @@ function LocationRow(props: {
       toast("Name and coordinates are required");
       return;
     }
-    props.onUpdate({ name: name.trim(), description: description.trim(), lat, lng, isPermanent });
+    props.onUpdate({ name: name.trim(), description: description.trim(), lat, lng, isPermanent, nfcEnabled, nfcId: nfcId.trim() || null });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -579,6 +610,11 @@ function LocationRow(props: {
         <div className="flex items-center gap-2">
           {props.loc.isPermanent && (
             <span className="text-[9px] uppercase tracking-wider text-amber-400/60 font-bold">Permanent</span>
+          )}
+          {props.loc.nfcEnabled && (
+            <span className="flex items-center gap-0.5 text-[9px] uppercase tracking-wider text-cyan-400/70 font-bold">
+              <Nfc className="h-3 w-3" />NFC
+            </span>
           )}
           {expanded ? (
             <ChevronUp className="h-4 w-4 text-white/25" />
@@ -628,6 +664,50 @@ function LocationRow(props: {
                   data-testid={`switch-location-permanent-${props.loc.id}`}
                 />
               </div>
+
+              {/* NFC Section */}
+              <div className="border-t border-white/5 pt-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Nfc className="h-3.5 w-3.5 text-cyan-400" />
+                    <span className="text-xs text-white/70 font-medium">NFC tag</span>
+                  </div>
+                  <Switch
+                    checked={nfcEnabled}
+                    onCheckedChange={setNfcEnabled}
+                    data-testid={`switch-location-nfc-${props.loc.id}`}
+                  />
+                </div>
+                {nfcEnabled && (
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-white/30">Tag slug (e.g. dauphine-dream)</p>
+                      <StyledInput
+                        value={nfcId}
+                        onChange={(e) => setNfcId(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
+                        placeholder="node-slug"
+                        data-testid={`input-location-nfc-id-${props.loc.id}`}
+                      />
+                    </div>
+                    {nfcUrl && (
+                      <div
+                        className="flex items-center gap-2 rounded-xl p-2.5 cursor-pointer group"
+                        style={{ background: "rgba(34,211,238,0.05)", border: "1px solid rgba(34,211,238,0.15)" }}
+                        onClick={() => { navigator.clipboard.writeText(nfcUrl); toast("URL copied to clipboard"); }}
+                        data-testid={`button-copy-nfc-url-${props.loc.id}`}
+                      >
+                        <Nfc className="h-3 w-3 text-cyan-400 shrink-0" />
+                        <span className="text-[10px] text-cyan-300/80 font-mono flex-1 truncate">{nfcUrl}</span>
+                        <Copy className="h-3 w-3 text-cyan-400/50 group-hover:text-cyan-400 shrink-0 transition" />
+                      </div>
+                    )}
+                    {!nfcId && (
+                      <p className="text-[10px] text-white/25 italic">Enter a slug above to generate the tag URL.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-2">
                 <button
                   onClick={handleSave}

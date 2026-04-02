@@ -19,6 +19,7 @@ import ListenChatPage from "@/pages/social/listen-chat";
 import UploadPage from "./pages/upload";
 import ArtistDashboard from "./pages/artist-dashboard";
 import AdminAnalytics from "./pages/admin-analytics";
+import NfcPage from "./pages/nfc";
 
 function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any>; path?: string }) {
   const { user } = useAuth();
@@ -61,6 +62,7 @@ function Router() {
       <Route path="/listen-chat">{() => <ProtectedRoute component={ListenChatPage} />}</Route>
       <Route path="/upload">{() => <RoleRoute component={UploadPage} allowedRoles={["admin", "artist"]} />}</Route>
       <Route path="/artist">{() => <RoleRoute component={ArtistDashboard} allowedRoles={["artist", "admin"]} />}</Route>
+      <Route path="/nfc/:nfcId" component={NfcPage} />
       <Route component={NotFound} />
     </Switch>
   );

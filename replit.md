@@ -2,7 +2,9 @@
 
 ## Overview
 
-EDØR is a place-based music and culture discovery platform. Users "pulse" at physical locations to unlock audio content (music drops) tied to those places. The app supports two modes: "discover" (finding new content) and "park" (stationary listening). Key features include location-based content unlocking, "Listening Circles" (synchronized group listening rooms with QR code sharing), a personal library of unlocked content, and an admin panel for managing locations, content, and assignments.
+EDØR is a place-based music and culture discovery platform. Users "pulse" at physical locations to unlock audio content (music drops) tied to those places. The app supports two modes: "discover" (finding new content) and "park" (stationary listening). Key features include location-based content unlocking via GPS or NFC tags, "Listening Circles" (synchronized group listening rooms with QR code sharing), a personal library of unlocked content, and an admin panel for managing locations, content, and assignments.
+
+**NFC Tag Integration**: Physical NFC tags can be placed at permanent nodes. Each tag stores a URL (`/nfc/<slug>`). When tapped, the phone opens the app and auto-unlocks content — no GPS required. Admins configure NFC slugs per location and copy the tag URL directly from the admin panel.
 
 The project is a full-stack TypeScript application with a PostgreSQL backend. All data (locations, contents, assignments, unlocked sessions, library) is persisted in the database and served via REST API. Client-side session state (mode, active room) remains in localStorage.
 
