@@ -4,10 +4,10 @@ import { Card } from "@/components/ui/card";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import { navigateWithTransition } from "@/hooks/use-view-transition";
-import { usePulseData, useCreateListenChat, useJoinListenChat, useActiveListenChats } from "@/lib/api";
+import { usePulseData, useCreateListenChat, useJoinListenChat, useActiveListenChats, useLibrary, useUnlock } from "@/lib/api";
 import { loadSession, setLastContentId, getLatestSession, startRoom } from "@/lib/edorSession";
 import { useAuth } from "@/hooks/use-auth";
-import { Pause, Play, SkipBack, Users } from "lucide-react";
+import { Pause, Play, SkipBack, CheckCircle2, Music, ListMusic } from "lucide-react";
 import { toast } from "sonner";
 
 function useQuery() {
@@ -29,12 +29,42 @@ export default function ContentPage() {
 
   const createChat = useCreateListenChat();
   const joinChat = useJoinListenChat();
+  const unlockMutation = useUnlock();
+  const { data: libraryData } = useLibrary();
 
   const content = pulseData?.contents.find((c) => c.id === contentId);
   const locId = q.get("loc") ?? session.selectedLocationId;
   const location = pulseData?.locations.find((l) => l.id === locId);
   const mode = (q.get("mode") ?? session.mode) as any;
   const fromNfc = q.get("nfc") === "1";
+
+  // All tracks assigned to this node (any mode, active time window)
+  const nodePlaylist = useMemo(() => {
+    if (!pulseData || !locId) return [];
+    const locAssignments = pulseData.assignments.filter((a) => a.locationId === locId);
+    const seen = new Set<string>();
+    return locAssignments
+      .map((a) => {
+        const c = pulseData.contents.find((x) => x.id === a.contentId);
+        if (!c || seen.has(c.id)) return null;
+        seen.add(c.id);
+        return { content: c, assignment: a };
+      })
+      .filter(Boolean) as { content: NonNullable<typeof content>; assignment: (typeof pulseData.assignments)[0] }[];
+  }, [pulseData, locId]);
+
+  const unlockedContentIds = useMemo(
+    () => new Set((libraryData ?? []).map((i) => i.contentId)),
+    [libraryData]
+  );
+
+  async function handlePlaylistTrack(trackId: string, assignmentMode: string) {
+    if (!locId) return;
+    if (!unlockedContentIds.has(trackId)) {
+      await unlockMutation.mutateAsync({ nodeId: locId, contentId: trackId, mode: assignmentMode }).catch(() => {});
+    }
+    navigateWithTransition(setLocation, `/content/${trackId}?loc=${locId}&mode=${assignmentMode}`);
+  }
 
   const isLatestForThisContent = latestSession?.contentId === contentId && latestSession?.nodeId === locId;
   const canStartCircle = location?.isPermanent && isLatestForThisContent;
@@ -303,6 +333,87 @@ export default function ContentPage() {
           </Button>
         </div>
       </Card>
+
+      {/* Node Playlist — only shown when this node has more than 1 track */}
+      {nodePlaylist.length > 1 && (
+        <div className="mt-4" data-testid="section-node-playlist">
+          <div className="flex items-center gap-2 px-1 mb-3">
+            <ListMusic className="h-4 w-4 text-white/40" />
+            <span className="text-xs font-bold uppercase tracking-[0.18em] text-white/40">
+              {location?.name ?? "Node"} Playlist
+            </span>
+            <span className="ml-auto text-[10px] text-white/25 font-bold">
+              {nodePlaylist.length} tracks
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            {nodePlaylist.map(({ content: track, assignment }) => {
+              const isCurrent = track.id === contentId;
+              const isUnlocked = unlockedContentIds.has(track.id);
+
+              return (
+                <button
+                  key={track.id}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all text-left active:scale-[0.98] ${
+                    isCurrent
+                      ? "bg-primary/15 border border-primary/30"
+                      : "bg-white/4 border border-white/6 hover:bg-white/8"
+                  }`}
+                  onClick={() => !isCurrent && handlePlaylistTrack(track.id, assignment.mode)}
+                  disabled={isCurrent}
+                  data-testid={`playlist-track-${track.id}`}
+                >
+                  {/* Artwork / index */}
+                  <div className="h-10 w-10 rounded-xl overflow-hidden bg-white/8 border border-white/8 flex items-center justify-center shrink-0 relative">
+                    {track.artworkUrl ? (
+                      <img src={track.artworkUrl} alt={track.title} className="h-full w-full object-cover" />
+                    ) : (
+                      <Music className="h-4 w-4 text-white/30" />
+                    )}
+                    {isCurrent && (
+                      <div className="absolute inset-0 bg-primary/40 flex items-center justify-center">
+                        {playing ? (
+                          <div className="flex gap-0.5 items-end h-3">
+                            {[0, 1, 2].map((i) => (
+                              <div
+                                key={i}
+                                className="w-0.5 bg-white rounded-full animate-pulse"
+                                style={{ height: `${50 + i * 25}%`, animationDelay: `${i * 0.15}s` }}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <Play className="h-3 w-3 text-white fill-white" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-semibold truncate ${isCurrent ? "text-primary" : "text-white/90"}`}>
+                      {track.title}
+                    </p>
+                    <p className="text-[11px] text-white/45 truncate">{track.creator}</p>
+                  </div>
+
+                  {/* Status badge */}
+                  <div className="shrink-0">
+                    {isCurrent ? (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-primary">Now Playing</span>
+                    ) : isUnlocked ? (
+                      <CheckCircle2 className="h-4 w-4 text-white/30" />
+                    ) : (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-white/25">Unlock</span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </Shell>
   );
 }
