@@ -381,10 +381,18 @@ export default function HomePage() {
                     data-testid={`link-artist-card-${content.id}`}
                   >
                     <div
-                      className={`h-[72px] w-[72px] rounded-2xl border bg-gradient-to-br to-white/3 ${fromColor} ${borderColor} flex items-center justify-center group-active:scale-95 transition-transform`}
+                      className={`h-[72px] w-[72px] rounded-2xl border overflow-hidden bg-gradient-to-br to-white/3 ${fromColor} ${borderColor} flex items-center justify-center group-active:scale-95 transition-transform relative`}
                       style={{ boxShadow: `0 0 18px ${hexColor}18` }}
                     >
-                      <Music className="h-6 w-6" style={{ color: hexColor, opacity: 0.6 }} />
+                      {content.artworkUrl ? (
+                        <img
+                          src={content.artworkUrl}
+                          alt={content.title}
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Music className="h-6 w-6" style={{ color: hexColor, opacity: 0.6 }} />
+                      )}
                     </div>
                     <p className="mt-1.5 text-[11px] font-medium text-white/80 truncate max-w-[72px]" data-testid={`text-artist-name-${content.id}`}>
                       {content.creator}

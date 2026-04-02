@@ -177,7 +177,7 @@ export async function registerRoutes(
           nodeId: parsed.data.nodeId,
           locationName: location.name,
           audioUrl: content.audioUrl,
-          artworkUrl: "",
+          artworkUrl: content.artworkUrl ?? "",
         });
       }
     }
@@ -195,7 +195,17 @@ export async function registerRoutes(
   app.get("/api/library", async (req, res) => {
     const userId = req.query.userId as string | undefined;
     const items = await storage.getLibrary(userId);
-    res.json(items);
+    // Back-fill artworkUrl from the content record for items saved before the fix
+    const allContents = await storage.getContents();
+    const contentMap = new Map(allContents.map((c) => [c.id, c]));
+    const enriched = items.map((item) => {
+      if (!item.artworkUrl) {
+        const content = contentMap.get(item.contentId);
+        return { ...item, artworkUrl: content?.artworkUrl ?? "" };
+      }
+      return item;
+    });
+    res.json(enriched);
   });
 
   app.delete("/api/library/:id", async (req, res) => {

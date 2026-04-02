@@ -183,9 +183,25 @@ export default function ContentPage() {
           className="aspect-[1/1] w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 to-white/0"
           data-testid="img-artwork"
         >
-          <div className="h-full w-full p-5">
-            <div className="h-full w-full rounded-2xl border border-white/10 bg-white/5" />
-          </div>
+          {content.videoUrl ? (
+            <video
+              src={content.videoUrl}
+              className="h-full w-full object-cover"
+              controls
+              playsInline
+              poster={content.artworkUrl ?? undefined}
+            />
+          ) : content.artworkUrl ? (
+            <img
+              src={content.artworkUrl}
+              alt={content.title}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-full w-full p-5">
+              <div className="h-full w-full rounded-2xl border border-white/10 bg-white/5" />
+            </div>
+          )}
         </div>
 
         <div className="mt-4">

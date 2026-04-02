@@ -148,11 +148,24 @@ export default function LibraryPage() {
                 data-testid={`library-track-${item.id}`}
               >
                 <div
-                  className="h-11 w-11 rounded-xl border border-white/8 bg-gradient-to-br from-white/8 to-white/3 flex items-center justify-center shrink-0 cursor-pointer active:scale-95 transition-transform"
+                  className="h-11 w-11 rounded-xl border border-white/8 bg-gradient-to-br from-white/8 to-white/3 flex items-center justify-center shrink-0 cursor-pointer active:scale-95 transition-transform overflow-hidden relative"
                   onClick={() => navigateWithTransition(setLocation, `/content/${item.contentId}?loc=${item.nodeId}`)}
                   data-testid={`button-play-${item.id}`}
                 >
-                  <Play className="h-3.5 w-3.5 text-primary fill-primary" />
+                  {item.artworkUrl ? (
+                    <>
+                      <img
+                        src={item.artworkUrl}
+                        alt={item.title}
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                        <Play className="h-3.5 w-3.5 text-white fill-white drop-shadow" />
+                      </div>
+                    </>
+                  ) : (
+                    <Play className="h-3.5 w-3.5 text-primary fill-primary" />
+                  )}
                 </div>
 
                 <div
