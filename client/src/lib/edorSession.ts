@@ -207,6 +207,7 @@ export function setLastContentId(contentId: string | undefined) {
   const s = loadSession();
   const next = { ...s, lastContentId: contentId };
   saveSession(next);
+  window.dispatchEvent(new CustomEvent("edor:lastContentId", { detail: contentId }));
   return next;
 }
 

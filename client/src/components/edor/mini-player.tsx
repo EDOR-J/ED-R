@@ -1,14 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { loadEdorData } from "@/lib/edorStore";
 import { loadSession } from "@/lib/edorSession";
+import { usePulseData } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   Play,
   Pause,
   ChevronDown,
-  Trophy,
   Music,
-  Heart,
   GripHorizontal,
 } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue } from "framer-motion";
@@ -20,22 +18,53 @@ export function MiniPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const constraintsRef = useRef<HTMLDivElement>(null);
 
-  const data = loadEdorData();
-  const session = loadSession();
+  // React to lastContentId changes from same tab
+  const [lastContentId, setLastContentId] = useState<string | undefined>(
+    () => loadSession().lastContentId
+  );
 
-  const currentContent = session.lastContentId
-    ? data.contents.find(c => c.id === session.lastContentId) ?? null
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setLastContentId((e as CustomEvent<string | undefined>).detail);
+      setIsPlaying(false);
+    };
+    window.addEventListener("edor:lastContentId", handler);
+    return () => window.removeEventListener("edor:lastContentId", handler);
+  }, []);
+
+  const { data: pulseData } = usePulseData();
+
+  const currentContent = lastContentId
+    ? (pulseData?.contents.find((c) => c.id === lastContentId) ?? null)
     : null;
+
+  // Reload audio source when content changes
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el || !currentContent) return;
+    el.src = currentContent.audioUrl;
+    el.load();
+    setIsPlaying(false);
+  }, [currentContent?.id]);
+
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    const onEnded = () => setIsPlaying(false);
+    el.addEventListener("ended", onEnded);
+    return () => el.removeEventListener("ended", onEnded);
+  }, []);
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!audioRef.current) return;
+    const el = audioRef.current;
+    if (!el) return;
     if (isPlaying) {
-      audioRef.current.pause();
+      el.pause();
+      setIsPlaying(false);
     } else {
-      audioRef.current.play();
+      el.play().then(() => setIsPlaying(true)).catch(() => {});
     }
-    setIsPlaying(!isPlaying);
   };
 
   if (!currentContent) return null;
@@ -47,6 +76,8 @@ export function MiniPlayer() {
         className="fixed inset-0 pointer-events-none"
         style={{ zIndex: 39 }}
       />
+      <audio ref={audioRef} />
+
       <motion.div
         drag
         dragConstraints={constraintsRef}
@@ -64,8 +95,6 @@ export function MiniPlayer() {
         whileDrag={{ scale: 1.03 }}
         data-testid="mini-player-wrapper"
       >
-        <audio ref={audioRef} src={currentContent.audioUrl} loop />
-
         <AnimatePresence mode="wait">
           {!isExpanded ? (
             <motion.div
@@ -78,6 +107,13 @@ export function MiniPlayer() {
               data-testid="mini-player-collapsed"
             >
               <div className="relative h-8 w-8 rounded-full bg-primary flex items-center justify-center shadow-lg overflow-hidden shrink-0">
+                {currentContent.artworkUrl ? (
+                  <img
+                    src={currentContent.artworkUrl}
+                    alt={currentContent.title}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : null}
                 {isPlaying && (
                   <motion.div
                     animate={{ scale: [1, 1.2, 1] }}
@@ -85,7 +121,9 @@ export function MiniPlayer() {
                     className="absolute inset-0 bg-white/20"
                   />
                 )}
-                <Music className="h-4 w-4 text-primary-foreground relative z-10" />
+                {!currentContent.artworkUrl && (
+                  <Music className="h-4 w-4 text-primary-foreground relative z-10" />
+                )}
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-[10px] font-bold text-white/90 leading-none truncate max-w-[80px]">
@@ -122,8 +160,16 @@ export function MiniPlayer() {
               <div className="p-4">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 border border-white/10 flex items-center justify-center shrink-0">
-                      <Music className="h-6 w-6 text-primary" />
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                      {currentContent.artworkUrl ? (
+                        <img
+                          src={currentContent.artworkUrl}
+                          alt={currentContent.title}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Music className="h-6 w-6 text-primary" />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <h4 className="text-sm font-bold text-white truncate">{currentContent.title}</h4>
@@ -139,45 +185,14 @@ export function MiniPlayer() {
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-center gap-6">
-                    <button className="text-white/40 hover:text-white transition">
-                      <Heart className="h-5 w-5" />
-                    </button>
-                    <button
-                      className="h-12 w-12 rounded-full bg-white text-black hover:bg-white/90 shadow-xl flex items-center justify-center transition"
-                      onClick={togglePlay}
-                    >
-                      {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 fill-current" />}
-                    </button>
-                    <button className="text-white/40 hover:text-white transition">
-                      <Trophy className="h-5 w-5" />
-                    </button>
-                  </div>
-
-                  <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-bold">Reward Stats</span>
-                      <span className="text-[10px] text-primary font-bold">LVL 4</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-white">1,240</span>
-                        <span className="text-[9px] text-white/40 uppercase">Pulse Points</span>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-xs font-bold text-white">#12</span>
-                        <span className="text-[9px] text-white/40 uppercase">Top Fan</span>
-                      </div>
-                    </div>
-                    <div className="mt-2 h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: "65%" }}
-                        className="h-full bg-primary"
-                      />
-                    </div>
-                  </div>
+                <div className="flex items-center justify-center">
+                  <button
+                    className="h-14 w-14 rounded-full bg-white text-black hover:bg-white/90 shadow-xl flex items-center justify-center transition"
+                    onClick={togglePlay}
+                    data-testid="button-mini-play-expanded"
+                  >
+                    {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 fill-current" />}
+                  </button>
                 </div>
               </div>
             </motion.div>
