@@ -15,8 +15,9 @@ export function BottomNav() {
   const [location] = useLocation();
   const navigate = useViewTransitionNavigate();
 
-  const hiddenRoutes = ["/login", "/signup", "/forgot-password", "/circle"];
-  if (hiddenRoutes.some(r => location.startsWith(r))) return null;
+  const hiddenRoutes = ["/login", "/signup", "/forgot-password"];
+  const isCircleRoom = location === "/circle" || location.startsWith("/circle/");
+  if (isCircleRoom || hiddenRoutes.some(r => location.startsWith(r))) return null;
 
   return (
     <nav
