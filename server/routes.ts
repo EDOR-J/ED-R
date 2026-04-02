@@ -710,5 +710,26 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  // ── Profiles ──────────────────────────────────────────────
+  app.get("/api/profile/creator/:name", async (req, res) => {
+    const name = decodeURIComponent(req.params.name);
+    const data = await storage.getCreatorProfile(name);
+    res.json(data);
+  });
+
+  app.get("/api/profile/user/:userId", async (req, res) => {
+    const data = await storage.getUserProfile(req.params.userId);
+    if (!data) return res.status(404).json({ message: "User not found" });
+    res.json(data);
+  });
+
+  app.patch("/api/profile/bio", async (req, res) => {
+    const { userId, bio } = req.body as { userId?: string; bio?: string };
+    if (!userId) return res.status(400).json({ message: "userId required" });
+    const updated = await storage.updateUserBio(userId, bio ?? "");
+    if (!updated) return res.status(404).json({ message: "User not found" });
+    res.json(updated);
+  });
+
   return httpServer;
 }

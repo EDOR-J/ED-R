@@ -175,9 +175,13 @@ export default function LibraryPage() {
                   <h3 className="text-[13px] font-semibold text-white truncate leading-tight" data-testid={`text-track-title-${item.id}`}>
                     {item.title}
                   </h3>
-                  <p className="text-[11px] text-white/45 truncate leading-tight mt-0.5" data-testid={`text-track-artist-${item.id}`}>
+                  <button
+                    className="text-[11px] text-white/45 hover:text-primary/80 transition-colors truncate leading-tight mt-0.5 text-left max-w-full"
+                    onClick={(e) => { e.stopPropagation(); navigateWithTransition(setLocation, `/profile/creator/${encodeURIComponent(item.artist)}`); }}
+                    data-testid={`text-track-artist-${item.id}`}
+                  >
                     {item.artist}
-                  </p>
+                  </button>
                   <div className="flex items-center gap-2.5 mt-1 text-[9px] text-white/30 font-medium uppercase tracking-wider">
                     <span className="flex items-center gap-0.5" data-testid={`text-track-location-${item.id}`}>
                       <MapPin className="h-2.5 w-2.5" />

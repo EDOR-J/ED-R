@@ -26,6 +26,7 @@ export const users = pgTable("users", {
   displayName: varchar("display_name"),
   phoneNumber: varchar("phone_number"),
   role: varchar("role").default("user"), // admin | artist | user
+  bio: text("bio"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

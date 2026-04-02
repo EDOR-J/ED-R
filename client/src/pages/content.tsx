@@ -241,9 +241,13 @@ export default function ContentPage() {
           <h2 className="mt-2 text-xl font-semibold text-white" data-testid="text-content-title">
             {content.title}
           </h2>
-          <p className="mt-1 text-sm text-white/70" data-testid="text-content-creator">
+          <button
+            onClick={() => navigateWithTransition(setLocation, `/profile/creator/${encodeURIComponent(content.creator)}`)}
+            className="mt-1 text-sm text-white/70 hover:text-primary transition-colors text-left"
+            data-testid="text-content-creator"
+          >
             {content.creator}
-          </p>
+          </button>
           <p className="mt-3 text-sm leading-relaxed text-white/70" data-testid="text-content-desc">
             {content.description}
           </p>

@@ -17,7 +17,7 @@ import {
   notifications, circlePlayback,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, lte, gte, desc, inArray, isNull } from "drizzle-orm";
+import { eq, and, or, lte, gte, desc, inArray, isNull, count, ilike } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -98,6 +98,21 @@ export interface IStorage {
   getPlaybackState(chatId: string): Promise<CirclePlaybackState | undefined>;
   upsertPlaybackState(chatId: string, state: { playing: boolean; currentTime: number; hostId: string }): Promise<void>;
   deletePlaybackState(chatId: string): Promise<void>;
+
+  // Profiles
+  getCreatorProfile(creatorName: string): Promise<{
+    tracks: Content[];
+    totalUnlocks: number;
+    totalSaves: number;
+    locationCount: number;
+  }>;
+  getUserProfile(userId: string): Promise<{
+    user: Omit<User, "passwordHash">;
+    stats: { libraryCount: number; unlockCount: number; friendsCount: number; circlesJoined: number };
+    status: UserStatus | null;
+    recentUnlocks: UnlockedSession[];
+  } | undefined>;
+  updateUserBio(userId: string, bio: string): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -439,6 +454,56 @@ export class DatabaseStorage implements IStorage {
 
   async deletePlaybackState(chatId: string): Promise<void> {
     await db.delete(circlePlayback).where(eq(circlePlayback.chatId, chatId));
+  }
+
+  async getCreatorProfile(creatorName: string) {
+    const tracks = await db.select().from(contents).where(ilike(contents.creator, creatorName));
+    const contentIds = tracks.map((t) => t.id);
+    if (contentIds.length === 0) {
+      return { tracks: [], totalUnlocks: 0, totalSaves: 0, locationCount: 0 };
+    }
+    const [unlockRow] = await db.select({ val: count() }).from(unlockedSessions).where(inArray(unlockedSessions.contentId, contentIds));
+    const [saveRow] = await db.select({ val: count() }).from(libraryItems).where(inArray(libraryItems.contentId, contentIds));
+    const locationRows = await db.selectDistinct({ locationId: assignments.locationId }).from(assignments).where(inArray(assignments.contentId, contentIds));
+    return {
+      tracks,
+      totalUnlocks: Number(unlockRow?.val ?? 0),
+      totalSaves: Number(saveRow?.val ?? 0),
+      locationCount: locationRows.length,
+    };
+  }
+
+  async getUserProfile(userId: string) {
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) return undefined;
+    const { passwordHash: _, ...safeUser } = user;
+    const [libRow] = await db.select({ val: count() }).from(libraryItems).where(eq(libraryItems.userId, userId));
+    const [unlockRow] = await db.select({ val: count() }).from(unlockedSessions).where(eq(unlockedSessions.userId, userId));
+    const [friendRow] = await db.select({ val: count() }).from(friendships).where(
+      and(or(eq(friendships.senderId, userId), eq(friendships.receiverId, userId)), eq(friendships.status, "accepted"))
+    );
+    const [circleRow] = await db.select({ val: count() }).from(listenChatMembers).where(eq(listenChatMembers.userId, userId));
+    const [status] = await db.select().from(userStatus).where(eq(userStatus.userId, userId)).limit(1);
+    const recentUnlocks = await db.select().from(unlockedSessions)
+      .where(eq(unlockedSessions.userId, userId))
+      .orderBy(desc(unlockedSessions.unlockedAt))
+      .limit(6);
+    return {
+      user: safeUser,
+      stats: {
+        libraryCount: Number(libRow?.val ?? 0),
+        unlockCount: Number(unlockRow?.val ?? 0),
+        friendsCount: Number(friendRow?.val ?? 0),
+        circlesJoined: Number(circleRow?.val ?? 0),
+      },
+      status: status ?? null,
+      recentUnlocks,
+    };
+  }
+
+  async updateUserBio(userId: string, bio: string): Promise<User | undefined> {
+    const [updated] = await db.update(users).set({ bio, updatedAt: new Date() }).where(eq(users.id, userId)).returning();
+    return updated;
   }
 }
 

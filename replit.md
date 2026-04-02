@@ -122,6 +122,8 @@ All routes are in `server/routes.ts`:
 - `/artist` — Artist dashboard with tabs: Overview (stats, quick actions, content list) and Campaigns (create/manage assignments to nodes with time windows, per-node metrics, live/upcoming/ended campaign sections)
 - `/login` — Guest login page (username: "guest", password: "edor")
 - `/profile` — User profile and settings page
+- `/profile/creator/:name` — Creator/artist public profile page (bio, stats, discography)
+- `/profile/user/:userId` — User public profile page (bio, stats, recent pulses, add-friend)
 
 ### Development vs Production
 - **Development**: Vite dev server with HMR proxied through Express, with Replit-specific plugins (cartographer, dev-banner)

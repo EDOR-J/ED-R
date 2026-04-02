@@ -374,15 +374,12 @@ export default function HomePage() {
               {(pulseData?.contents ?? []).slice(0, 8).map((content, i) => {
                 const [fromColor, borderColor, hexColor] = CONTENT_COLORS[i % CONTENT_COLORS.length];
                 return (
-                  <Link
-                    key={content.id}
-                    href={`/content/${content.id}`}
-                    className="shrink-0 group focus:outline-none"
-                    data-testid={`link-artist-card-${content.id}`}
-                  >
-                    <div
-                      className={`h-[72px] w-[72px] rounded-2xl border overflow-hidden bg-gradient-to-br to-white/3 ${fromColor} ${borderColor} flex items-center justify-center group-active:scale-95 transition-transform relative`}
+                  <div key={content.id} className="shrink-0 flex flex-col">
+                    <button
+                      onClick={() => navigateWithTransition(setLocation, `/content/${content.id}`)}
+                      className={`h-[72px] w-[72px] rounded-2xl border overflow-hidden bg-gradient-to-br to-white/3 ${fromColor} ${borderColor} flex items-center justify-center active:scale-95 transition-transform relative`}
                       style={{ boxShadow: `0 0 18px ${hexColor}18` }}
+                      data-testid={`link-artist-card-${content.id}`}
                     >
                       {content.artworkUrl ? (
                         <img
@@ -393,14 +390,18 @@ export default function HomePage() {
                       ) : (
                         <Music className="h-6 w-6" style={{ color: hexColor, opacity: 0.6 }} />
                       )}
-                    </div>
-                    <p className="mt-1.5 text-[11px] font-medium text-white/80 truncate max-w-[72px]" data-testid={`text-artist-name-${content.id}`}>
+                    </button>
+                    <button
+                      onClick={() => navigateWithTransition(setLocation, `/profile/creator/${encodeURIComponent(content.creator)}`)}
+                      className="mt-1.5 text-[11px] font-medium text-white/80 truncate max-w-[72px] hover:text-primary transition-colors text-left"
+                      data-testid={`text-artist-name-${content.id}`}
+                    >
                       {content.creator}
-                    </p>
+                    </button>
                     <p className="text-[10px] text-white/35 truncate max-w-[72px]" data-testid={`text-artist-track-${content.id}`}>
                       {content.title}
                     </p>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
@@ -423,14 +424,14 @@ export default function HomePage() {
                 const [fromColor, borderColor, hexColor] = CONTENT_COLORS[i % CONTENT_COLORS.length];
                 const isModeDiscover = assignment.mode === "discover";
                 return (
-                  <Link
+                  <div
                     key={assignment.id}
-                    href={`/content/${content.id}`}
-                    className="shrink-0 group focus:outline-none"
+                    className="shrink-0"
                     data-testid={`card-drop-${assignment.id}`}
                   >
-                    <div
-                      className={`w-44 rounded-2xl border bg-gradient-to-br to-black/30 ${fromColor} ${borderColor} p-3.5 flex flex-col gap-2 group-active:scale-[0.97] transition-transform`}
+                    <button
+                      onClick={() => navigateWithTransition(setLocation, `/content/${content.id}`)}
+                      className={`w-44 rounded-2xl border bg-gradient-to-br to-black/30 ${fromColor} ${borderColor} p-3.5 flex flex-col gap-2 active:scale-[0.97] transition-transform text-left`}
                       style={{ boxShadow: `0 4px 24px ${hexColor}12` }}
                     >
                       <div
@@ -444,9 +445,16 @@ export default function HomePage() {
                         <p className="text-[13px] font-semibold text-white leading-tight truncate" data-testid={`text-title-${content.id}`}>
                           {content.title}
                         </p>
-                        <p className="text-[11px] text-white/50 truncate mt-0.5" data-testid={`text-creator-${content.id}`}>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => { e.stopPropagation(); navigateWithTransition(setLocation, `/profile/creator/${encodeURIComponent(content.creator)}`); }}
+                          onKeyDown={(e) => e.key === "Enter" && navigateWithTransition(setLocation, `/profile/creator/${encodeURIComponent(content.creator)}`)}
+                          className="text-[11px] text-white/50 truncate mt-0.5 hover:text-primary/80 transition-colors cursor-pointer"
+                          data-testid={`text-creator-${content.id}`}
+                        >
                           {content.creator}
-                        </p>
+                        </span>
                       </div>
                       <div className="flex items-center gap-1.5 mt-auto">
                         <span
@@ -460,8 +468,8 @@ export default function HomePage() {
                           {isModeDiscover ? "Discover" : "Park"}
                         </span>
                       </div>
-                    </div>
-                  </Link>
+                    </button>
+                  </div>
                 );
               })
             ) : (

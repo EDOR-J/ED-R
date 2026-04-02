@@ -49,6 +49,7 @@ function timeAgo(dateStr: string) {
 }
 
 function FriendStatusCard({ status, onListenChat }: { status: ApiUserStatus; onListenChat: (s: ApiUserStatus) => void }) {
+  const [, setLocation] = useLocation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -66,7 +67,11 @@ function FriendStatusCard({ status, onListenChat }: { status: ApiUserStatus; onL
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-bold text-white truncate" data-testid={`text-friend-name-${status.userId}`}>{status.displayName}</p>
+          <button
+            onClick={() => navigateWithTransition(setLocation, `/profile/user/${status.userId}`)}
+            className="text-sm font-bold text-white truncate hover:text-primary transition-colors text-left"
+            data-testid={`text-friend-name-${status.userId}`}
+          >{status.displayName}</button>
           {!status.isOnline && (
             <span className="text-[9px] text-white/25 flex items-center gap-1" data-testid={`text-last-seen-${status.userId}`}>
               <Clock className="h-2.5 w-2.5" /> {timeAgo(status.lastSeen)}
@@ -245,7 +250,11 @@ export default function FriendsPage() {
                     {(u.displayName || u.username).charAt(0)}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">{u.displayName || u.username}</p>
+                    <button
+                      onClick={() => navigateWithTransition(setLocation, `/profile/user/${u.id}`)}
+                      className="text-sm font-medium text-white hover:text-primary transition-colors text-left"
+                      data-testid={`link-user-profile-${u.id}`}
+                    >{u.displayName || u.username}</button>
                     <p className="text-[10px] text-white/30">@{u.username}</p>
                   </div>
                 </div>
