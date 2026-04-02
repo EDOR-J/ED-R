@@ -1,47 +1,36 @@
 import Shell from "@/components/edor/shell";
-import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Card } from "@/components/ui/card";
 import { Link, useLocation } from "wouter";
 import { navigateWithTransition } from "@/hooks/use-view-transition";
 import { usePulseData, useDrops, getNearestLocation } from "@/lib/api";
 import { loadSession, setMode, startRoom } from "@/lib/edorSession";
-import { useMemo, useState, useEffect } from "react";
-import { MapPin, Radio, Sparkles, Scan } from "lucide-react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { MapPin, Sparkles, Scan, Music } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
-import logo from "@assets/Screenshot_20260130_133453_Gallery_1769832888373.jpeg";
+import { AnimatePresence, motion } from "framer-motion";
 
 function useQuery() {
   const [loc] = useLocation();
   return useMemo(() => new URLSearchParams(loc.split("?")[1] ?? ""), [loc]);
 }
 
-import { AnimatePresence, motion } from "framer-motion";
-
 function IceCrystal({ id, onComplete }: { id: number; onComplete: (id: number) => void }) {
   const angle = Math.random() * 360;
-  const moveDistance = 50 + Math.random() * 60;
+  const moveDistance = 60 + Math.random() * 80;
   const duration = 0.6 + Math.random() * 0.6;
-  const size = 2 + Math.random() * 4;
+  const size = 2 + Math.random() * 5;
   const isFlake = Math.random() > 0.4;
 
   return (
     <motion.div
-      initial={{
-        opacity: 0,
-        scale: 0,
-        x: "50%",
-        y: "50%",
-        rotate: Math.random() * 360
-      }}
+      initial={{ opacity: 0, scale: 0, x: "50%", y: "50%", rotate: Math.random() * 360 }}
       animate={{
         opacity: [0, 0.9, 0],
         scale: [0.3, 1.4, 0],
         x: `calc(50% + ${Math.cos(angle * (Math.PI / 180)) * moveDistance}px)`,
         y: `calc(50% + ${Math.sin(angle * (Math.PI / 180)) * moveDistance}px)`,
-        rotate: Math.random() * 360 + 180
+        rotate: Math.random() * 360 + 180,
       }}
       transition={{ duration, ease: "easeOut" }}
       onAnimationComplete={() => onComplete(id)}
@@ -70,6 +59,23 @@ function IceCrystal({ id, onComplete }: { id: number; onComplete: (id: number) =
   );
 }
 
+const CONTENT_COLORS = [
+  ["from-purple-500/20", "border-purple-500/20", "#a855f7"],
+  ["from-cyan-500/20", "border-cyan-500/20", "#06b6d4"],
+  ["from-amber-500/20", "border-amber-500/20", "#f59e0b"],
+  ["from-rose-500/20", "border-rose-500/20", "#f43f5e"],
+  ["from-emerald-500/20", "border-emerald-500/20", "#10b981"],
+  ["from-blue-500/20", "border-blue-500/20", "#3b82f6"],
+];
+
+const stagger = {
+  container: { hidden: {}, show: { transition: { staggerChildren: 0.07 } } },
+  item: {
+    hidden: { opacity: 0, y: 18 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
+  },
+};
+
 export default function HomePage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -83,33 +89,22 @@ export default function HomePage() {
   const [isHolding, setIsHolding] = useState(false);
   const [iceIntensity, setIceIntensity] = useState(0);
   const [particles, setParticles] = useState<number[]>([]);
-  
-  const intervalRef = useState<{ current: NodeJS.Timeout | null }>({ current: null })[0];
-  const particleIntervalRef = useState<{ current: NodeJS.Timeout | null }>({ current: null })[0];
-  const iceIntervalRef = useState<{ current: NodeJS.Timeout | null }>({ current: null })[0];
 
-  const addParticle = () => {
-    setParticles(prev => [...prev, Date.now() + Math.random()]);
-  };
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const particleIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const iceIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const removeParticle = (id: number) => {
-    setParticles(prev => prev.filter(p => p !== id));
-  };
+  const addParticle = () => setParticles(prev => [...prev, Date.now() + Math.random()]);
+  const removeParticle = (id: number) => setParticles(prev => prev.filter(p => p !== id));
 
   const startHold = () => {
     setIsHolding(true);
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (particleIntervalRef.current) clearInterval(particleIntervalRef.current);
     if (iceIntervalRef.current) clearInterval(iceIntervalRef.current);
-    
-    intervalRef.current = setInterval(() => {
-      setSparkleDuration((prev) => Math.max(0.15, prev * 0.88));
-    }, 80);
 
-    iceIntervalRef.current = setInterval(() => {
-      setIceIntensity((prev) => Math.min(1, prev + 0.06));
-    }, 60);
-
+    intervalRef.current = setInterval(() => setSparkleDuration(prev => Math.max(0.15, prev * 0.88)), 80);
+    iceIntervalRef.current = setInterval(() => setIceIntensity(prev => Math.min(1, prev + 0.06)), 60);
     addParticle();
     particleIntervalRef.current = setInterval(() => {
       addParticle();
@@ -138,22 +133,12 @@ export default function HomePage() {
   useEffect(() => {
     const joinId = q.get("join");
     const locId = q.get("loc");
-    
     if (joinId && locId && pulseData?.locations) {
-      if (!navigator.geolocation) {
-        toast.error("Location required to join Circle");
-        return;
-      }
-
+      if (!navigator.geolocation) { toast.error("Location required to join Circle"); return; }
       navigator.geolocation.getCurrentPosition((pos) => {
         const targetLoc = pulseData.locations.find(l => l.id === locId);
         if (!targetLoc) return;
-
-        const nearest = getNearestLocation(
-          { lat: pos.coords.latitude, lng: pos.coords.longitude },
-          [targetLoc]
-        );
-
+        const nearest = getNearestLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }, [targetLoc]);
         if (nearest && nearest.distanceMeters < 100) {
           startRoom(locId, joinId.split('-')[1]);
           navigateWithTransition(setLocation, "/circle");
@@ -165,14 +150,32 @@ export default function HomePage() {
     }
   }, [q, pulseData?.locations]);
 
+  const isDiscover = mode === "discover";
+
   if (pulseLoading || dropsLoading) {
     return (
       <Shell right={<div />}>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white/80" />
-            <p className="text-sm text-white/50" data-testid="text-loading">Loading…</p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center gap-5"
+          >
+            <div className="relative h-16 w-16">
+              {[0, 1, 2].map(i => (
+                <motion.div
+                  key={i}
+                  className="absolute inset-0 rounded-full border border-white/20"
+                  animate={{ scale: [1, 2.2], opacity: [0.4, 0] }}
+                  transition={{ duration: 1.8, delay: i * 0.6, repeat: Infinity, ease: "easeOut" }}
+                />
+              ))}
+              <div className="absolute inset-0 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                <div className="h-2 w-2 rounded-full bg-white/40 animate-pulse" />
+              </div>
+            </div>
+            <p className="text-xs text-white/40 font-medium tracking-widest uppercase" data-testid="text-loading">Tuning in…</p>
+          </motion.div>
         </div>
       </Shell>
     );
@@ -203,83 +206,94 @@ export default function HomePage() {
         </div>
       }
     >
-      <div className="w-full pt-4 pb-8 overflow-hidden">
-        <img 
-          src={logo} 
-          alt="EDØR Logo" 
-          className="w-full h-auto object-contain max-w-none"
-          data-testid="img-logo"
-        />
-      </div>
-
-      <section className="edor-noise glass rounded-3xl p-5">
-        <div>
-          <p className="text-xs text-white/60" data-testid="text-mode-label">
-            Mode
-          </p>
-          <div className="mt-2">
-            <ToggleGroup
-              type="single"
-              value={mode}
-              onValueChange={(v) => {
-                if (!v) return;
-                setModeState(v as any);
-                setMode(v as any);
-              }}
-              className="grid grid-cols-2 gap-2"
+      <motion.div
+        variants={stagger.container}
+        initial="hidden"
+        animate="show"
+        className="space-y-10"
+      >
+        {/* ── Hero wordmark ──────────────────────────────── */}
+        <motion.div variants={stagger.item} className="relative">
+          <div
+            className="relative rounded-3xl overflow-hidden px-6 pt-10 pb-8 flex flex-col items-center gap-2"
+            style={{
+              background: isDiscover
+                ? "radial-gradient(ellipse 90% 80% at 50% 0%, rgba(168,85,247,0.18) 0%, transparent 70%), rgba(255,255,255,0.03)"
+                : "radial-gradient(ellipse 90% 80% at 50% 0%, rgba(6,182,212,0.16) 0%, transparent 70%), rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              transition: "background 0.8s ease",
+            }}
+          >
+            <motion.h1
+              className="font-serif text-[56px] leading-none tracking-tighter font-bold text-white select-none"
+              data-testid="img-logo"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             >
-              <ToggleGroupItem
-                value="discover"
-                className="justify-start gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white/90 data-[state=on]:bg-white/10 data-[state=on]:border-white/20"
+              EDØR
+            </motion.h1>
+            <p className="text-[11px] font-medium tracking-[0.22em] uppercase text-white/35">
+              Place-based music &amp; culture
+            </p>
+
+            {/* Ambient orb */}
+            <div
+              className="absolute -top-12 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full blur-3xl pointer-events-none"
+              style={{
+                background: isDiscover
+                  ? "radial-gradient(circle, rgba(168,85,247,0.12) 0%, transparent 70%)"
+                  : "radial-gradient(circle, rgba(6,182,212,0.10) 0%, transparent 70%)",
+                transition: "background 0.8s ease",
+              }}
+            />
+          </div>
+        </motion.div>
+
+        {/* ── Mode pill + Pulse orb ──────────────────────── */}
+        <motion.div variants={stagger.item} className="flex flex-col items-center gap-6">
+          {/* Slim mode pill */}
+          <div className="flex items-center gap-2">
+            <div
+              className="relative flex rounded-full p-1 gap-1"
+              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+              data-testid="text-mode-label"
+            >
+              {/* sliding highlight */}
+              <motion.div
+                className="absolute top-1 bottom-1 rounded-full"
+                animate={{ left: isDiscover ? "4px" : "calc(50% + 2px)", right: isDiscover ? "calc(50% + 2px)" : "4px" }}
+                transition={{ type: "spring", stiffness: 380, damping: 36 }}
+                style={{ background: isDiscover ? "rgba(168,85,247,0.25)" : "rgba(6,182,212,0.22)" }}
+              />
+              <button
+                className={`relative z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors duration-200 ${isDiscover ? "text-purple-200" : "text-white/40"}`}
+                onClick={() => { setModeState("discover"); setMode("discover" as any); }}
                 data-testid="toggle-discover"
               >
-                <Sparkles className="h-4 w-4 text-purple-300" />
-                <span className="font-medium">Discover</span>
-                <span className="ml-auto text-xs text-white/55">Music</span>
-              </ToggleGroupItem>
-              <ToggleGroupItem
-                value="park"
-                className="justify-start gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white/90 data-[state=on]:bg-white/10 data-[state=on]:border-white/20"
+                <Sparkles className="h-3.5 w-3.5" />
+                Discover
+              </button>
+              <button
+                className={`relative z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors duration-200 ${!isDiscover ? "text-cyan-200" : "text-white/40"}`}
+                onClick={() => { setModeState("park"); setMode("park" as any); }}
                 data-testid="toggle-park"
               >
-                <MapPin className="h-4 w-4 text-sky-300" />
-                <span className="font-medium">Park</span>
-                <span className="ml-auto text-xs text-white/55">Ambient</span>
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-        </div>
+                <MapPin className="h-3.5 w-3.5" />
+                Park
+              </button>
+            </div>
 
-        <div className="mt-5 relative">
-          <AnimatePresence>
-            {particles.map(id => (
-              <IceCrystal key={id} id={id} onComplete={removeParticle} />
-            ))}
-          </AnimatePresence>
-          <Button
-            size="lg"
-            className={`w-full rounded-2xl h-14 text-base font-semibold tracking-wide animate-sparkle transition-all duration-300 active:scale-[0.98] relative z-20 ${isHolding ? "pulse-btn-holding" : ""}`}
-            onClick={() => navigateWithTransition(setLocation, "/pulse")}
-            onMouseDown={startHold}
-            onMouseUp={endHold}
-            onMouseLeave={endHold}
-            onTouchStart={startHold}
-            onTouchEnd={endHold}
-            style={{
-              "--sparkle-duration": `${sparkleDuration}s`,
-              "--ice-intensity": `${iceIntensity}`,
-            } as React.CSSProperties}
-            data-testid="button-pulse"
-          >
-            Pulse
-          </Button>
-          <div className="mt-4 flex gap-2">
+            {/* Scan to Join — compact icon button */}
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" className="flex-1 rounded-2xl h-12 border-white/10 text-white/60 text-xs gap-2">
+                <button
+                  className="h-9 w-9 rounded-full flex items-center justify-center text-white/35 hover:text-white/60 hover:bg-white/5 transition"
+                  data-testid="button-scan"
+                  title="Scan to Join"
+                >
                   <Scan className="h-4 w-4" />
-                  Scan to Join
-                </Button>
+                </button>
               </DialogTrigger>
               <DialogContent className="bg-[#0A0A0A] border-white/10 text-white">
                 <DialogHeader>
@@ -296,104 +310,182 @@ export default function HomePage() {
               </DialogContent>
             </Dialog>
           </div>
-          <p className="mt-2 text-xs text-white/55 text-center" data-testid="text-pulse-helper">
-            We’ll ask for location to find your nearest Pulse.
-          </p>
-        </div>
-      </section>
 
-      <section className="mt-8">
-        <div className="flex items-end justify-between px-1">
-          <h3
-            className="font-serif text-lg font-bold tracking-tight"
-            data-testid="text-nearby-title"
-          >
-            Nearby Artists
-          </h3>
-          <p className="text-xs text-white/45" data-testid="text-nearby-subtitle">
-            Local Pulse
-          </p>
-        </div>
-        <div className="mt-3 flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 scroll-smooth">
-          {(pulseData?.contents ?? []).slice(0, 6).map((content) => (
-            <Link
-              key={content.id}
-              href={`/content/${content.id}`}
-              className="group shrink-0 w-32 focus:outline-none"
-              data-testid={`link-artist-card-${content.id}`}
+          {/* Pulse orb */}
+          <div className="relative flex items-center justify-center">
+            {/* Radiating rings */}
+            {[0, 1, 2].map(i => (
+              <motion.div
+                key={i}
+                className="absolute rounded-full pointer-events-none"
+                animate={{ scale: [1, 2.6], opacity: [0.18, 0] }}
+                transition={{ duration: 2.4, delay: i * 0.8, repeat: Infinity, ease: "easeOut" }}
+                style={{
+                  width: 120,
+                  height: 120,
+                  border: `1px solid ${isDiscover ? "rgba(168,85,247,0.5)" : "rgba(6,182,212,0.5)"}`,
+                }}
+              />
+            ))}
+
+            {/* Ice particles */}
+            <AnimatePresence>
+              {particles.map(id => (
+                <IceCrystal key={id} id={id} onComplete={removeParticle} />
+              ))}
+            </AnimatePresence>
+
+            {/* The button itself */}
+            <motion.button
+              className={`relative z-20 h-[120px] w-[120px] rounded-full flex items-center justify-center animate-sparkle ${isHolding ? "pulse-btn-holding" : ""}`}
+              style={{
+                background: isDiscover
+                  ? "radial-gradient(circle at 35% 35%, rgba(168,85,247,0.35), rgba(139,92,246,0.15) 60%, rgba(0,0,0,0.3))"
+                  : "radial-gradient(circle at 35% 35%, rgba(6,182,212,0.35), rgba(14,165,233,0.15) 60%, rgba(0,0,0,0.3))",
+                border: isDiscover ? "1px solid rgba(168,85,247,0.4)" : "1px solid rgba(6,182,212,0.4)",
+                boxShadow: isDiscover
+                  ? "0 0 40px rgba(168,85,247,0.15), inset 0 1px 0 rgba(255,255,255,0.1)"
+                  : "0 0 40px rgba(6,182,212,0.15), inset 0 1px 0 rgba(255,255,255,0.1)",
+                "--sparkle-duration": `${sparkleDuration}s`,
+                "--ice-intensity": `${iceIntensity}`,
+                transition: "background 0.8s ease, border-color 0.8s ease, box-shadow 0.8s ease",
+              } as React.CSSProperties}
+              onClick={() => navigateWithTransition(setLocation, "/pulse")}
+              onMouseDown={startHold}
+              onMouseUp={endHold}
+              onMouseLeave={endHold}
+              onTouchStart={startHold}
+              onTouchEnd={endHold}
+              whileTap={{ scale: 0.96 }}
+              data-testid="button-pulse"
             >
-              <div className="aspect-square w-full rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 overflow-hidden group-hover:border-white/20 transition-colors">
-                <div className="h-full w-full flex items-center justify-center bg-white/5 group-active:scale-95 transition-transform">
-                  <Radio className="h-6 w-6 text-white/20" />
-                </div>
-              </div>
-              <p className="mt-2 text-xs font-medium text-white/90 truncate" data-testid={`text-artist-name-${content.id}`}>
-                {content.creator}
-              </p>
-              <p className="text-[10px] text-white/40 truncate" data-testid={`text-artist-track-${content.id}`}>
-                {content.title}
-              </p>
-            </Link>
-          ))}
-        </div>
-      </section>
+              <span className="font-serif text-xl font-bold text-white/90 tracking-wide select-none">
+                Pulse
+              </span>
+            </motion.button>
+          </div>
 
-      <section className="mt-2">
-        <div className="flex items-end justify-between px-1">
-          <h3
-            className="font-serif text-lg font-bold tracking-tight"
-            data-testid="text-drops-title"
-          >
-            This week’s Pulse drops
-          </h3>
-          <p className="text-xs text-white/45" data-testid="text-drops-subtitle">
-            Limited rotations
+          <p className="text-[11px] text-white/35 text-center tracking-wide" data-testid="text-pulse-helper">
+            We'll find your nearest drop
           </p>
-        </div>
+        </motion.div>
 
-        <div className="mt-3 grid gap-3">
-          {(drops ?? []).length ? (
-            (drops ?? []).map(({ assignment, content, location }) => (
-              <Card
-                key={assignment.id}
-                className="edor-noise glass rounded-3xl p-4"
-                data-testid={`card-drop-${assignment.id}`}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className="h-11 w-11 shrink-0 rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5"
-                    data-testid={`img-artwork-${content.id}`}
-                  />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white" data-testid={`text-title-${content.id}`}>
-                      {content.title}
-                    </p>
-                    <p
-                      className="mt-0.5 text-xs text-white/65"
-                      data-testid={`text-creator-${content.id}`}
+        {/* ── Nearby Artists ─────────────────────────────── */}
+        {(pulseData?.contents ?? []).length > 0 && (
+          <motion.section variants={stagger.item}>
+            <div className="flex items-center justify-between px-0.5 mb-4">
+              <h3 className="font-serif text-base font-bold tracking-tight text-white" data-testid="text-nearby-title">
+                Nearby Artists
+              </h3>
+              <span className="text-[10px] text-white/30 font-medium uppercase tracking-widest" data-testid="text-nearby-subtitle">
+                Local Pulse
+              </span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar -mx-4 px-4">
+              {(pulseData?.contents ?? []).slice(0, 8).map((content, i) => {
+                const [fromColor, borderColor, hexColor] = CONTENT_COLORS[i % CONTENT_COLORS.length];
+                return (
+                  <Link
+                    key={content.id}
+                    href={`/content/${content.id}`}
+                    className="shrink-0 group focus:outline-none"
+                    data-testid={`link-artist-card-${content.id}`}
+                  >
+                    <div
+                      className={`h-[72px] w-[72px] rounded-2xl border bg-gradient-to-br to-white/3 ${fromColor} ${borderColor} flex items-center justify-center group-active:scale-95 transition-transform`}
+                      style={{ boxShadow: `0 0 18px ${hexColor}18` }}
                     >
+                      <Music className="h-6 w-6" style={{ color: hexColor, opacity: 0.6 }} />
+                    </div>
+                    <p className="mt-1.5 text-[11px] font-medium text-white/80 truncate max-w-[72px]" data-testid={`text-artist-name-${content.id}`}>
                       {content.creator}
                     </p>
-                    <p
-                      className="mt-1 text-xs text-white/50"
-                      data-testid={`text-location-${location.id}`}
-                    >
-                      {location.name} • {assignment.mode === "discover" ? "Discover" : "Park"}
+                    <p className="text-[10px] text-white/35 truncate max-w-[72px]" data-testid={`text-artist-track-${content.id}`}>
+                      {content.title}
                     </p>
-                  </div>
-                </div>
-              </Card>
-            ))
-          ) : (
-            <Card className="glass rounded-3xl p-4" data-testid="empty-drops">
-              <p className="text-sm text-white/70" data-testid="text-empty-drops">
-                No drops are active right now.
-              </p>
-            </Card>
-          )}
-        </div>
-      </section>
+                  </Link>
+                );
+              })}
+            </div>
+          </motion.section>
+        )}
 
+        {/* ── This week's drops ──────────────────────────── */}
+        <motion.section variants={stagger.item}>
+          <div className="flex items-center justify-between px-0.5 mb-4">
+            <h3 className="font-serif text-base font-bold tracking-tight text-white" data-testid="text-drops-title">
+              This week's drops
+            </h3>
+            <span className="text-[10px] text-white/30 font-medium uppercase tracking-widest" data-testid="text-drops-subtitle">
+              Limited rotations
+            </span>
+          </div>
+
+          <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar -mx-4 px-4">
+            {(drops ?? []).length ? (
+              (drops ?? []).map(({ assignment, content, location }, i) => {
+                const [fromColor, borderColor, hexColor] = CONTENT_COLORS[i % CONTENT_COLORS.length];
+                const isModeDiscover = assignment.mode === "discover";
+                return (
+                  <Link
+                    key={assignment.id}
+                    href={`/content/${content.id}`}
+                    className="shrink-0 group focus:outline-none"
+                    data-testid={`card-drop-${assignment.id}`}
+                  >
+                    <div
+                      className={`w-44 rounded-2xl border bg-gradient-to-br to-black/30 ${fromColor} ${borderColor} p-3.5 flex flex-col gap-2 group-active:scale-[0.97] transition-transform`}
+                      style={{ boxShadow: `0 4px 24px ${hexColor}12` }}
+                    >
+                      {/* Artwork swatch */}
+                      <div
+                        className="h-10 w-10 rounded-xl border flex items-center justify-center"
+                        style={{ borderColor: `${hexColor}30`, background: `${hexColor}18` }}
+                        data-testid={`img-artwork-${content.id}`}
+                      >
+                        <Music className="h-4 w-4" style={{ color: hexColor, opacity: 0.7 }} />
+                      </div>
+
+                      {/* Text */}
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold text-white leading-tight truncate" data-testid={`text-title-${content.id}`}>
+                          {content.title}
+                        </p>
+                        <p className="text-[11px] text-white/50 truncate mt-0.5" data-testid={`text-creator-${content.id}`}>
+                          {content.creator}
+                        </p>
+                      </div>
+
+                      {/* Location badge */}
+                      <div className="flex items-center gap-1.5 mt-auto">
+                        <span
+                          className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                          style={{ background: `${hexColor}18`, color: hexColor }}
+                          data-testid={`text-location-${location.id}`}
+                        >
+                          {location.name}
+                        </span>
+                        <span className="text-[9px] text-white/25 uppercase tracking-wider">
+                          {isModeDiscover ? "Discover" : "Park"}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })
+            ) : (
+              <div
+                className="w-full rounded-2xl border border-white/5 bg-white/[0.02] p-6 text-center"
+                data-testid="empty-drops"
+              >
+                <p className="text-sm text-white/30" data-testid="text-empty-drops">
+                  No drops active right now
+                </p>
+              </div>
+            )}
+          </div>
+        </motion.section>
+      </motion.div>
     </Shell>
   );
 }
