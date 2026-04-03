@@ -50,7 +50,7 @@ The app runs at `http://localhost:5000` by default.
 - **Email/password** — Register and log in with an email address and password
 - **Google Sign-In** — Set `GOOGLE_CLIENT_ID` to enable the Google button on the login page (requires a Google Cloud OAuth 2.0 credential with the app's domain as an authorised origin)
 - **Guest** — A one-tap "Continue as guest" button for limited, no-signup access (no persistent library)
-- **Admin** — Separate Admin tab on the login page; use username `guest` / password `edor`
+- **Admin** — Separate Admin tab on the login page; use username `guest` / password `edor` *(development/demo credentials — change for production)*
 
 ## Admin Panel
 
