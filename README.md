@@ -14,7 +14,7 @@ EDØR is a location-based music discovery platform. Users physically visit city 
 
 ## Tech Stack
 
-- **Frontend**: React 18 + TypeScript, Vite, Tailwind CSS, shadcn/ui, Framer Motion, TanStack React Query, Wouter
+- **Frontend**: React 19 + TypeScript, Vite, Tailwind CSS, shadcn/ui, Framer Motion, TanStack React Query, Wouter
 - **Backend**: Node.js + Express 5, TypeScript (tsx), Drizzle ORM
 - **Database**: PostgreSQL
 - **Storage**: Replit Object Storage (audio, artwork, video uploads)
@@ -49,8 +49,8 @@ The app runs at `http://localhost:5000` by default.
 
 - **Email/password** — Register and log in with an email address and password
 - **Google Sign-In** — Set `GOOGLE_CLIENT_ID` to enable the Google button on the login page (requires a Google Cloud OAuth 2.0 credential with the app's domain as an authorised origin)
-- **Guest login** — Username `guest`, password `edor` (limited access, no persistent library)
-- **Admin** — Same guest credentials via the Admin tab on the login page
+- **Guest** — A one-tap "Continue as guest" button for limited, no-signup access (no persistent library)
+- **Admin** — Separate Admin tab on the login page; use username `guest` / password `edor`
 
 ## Admin Panel
 
