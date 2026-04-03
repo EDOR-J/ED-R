@@ -2,36 +2,42 @@ import { PropsWithChildren } from "react";
 import { cn } from "@/lib/utils";
 import { MiniPlayer } from "./mini-player";
 import { BottomNav } from "./bottom-nav";
+import { ProximityBanner } from "./proximity-banner";
 import { useViewTransitionNavigate } from "@/hooks/use-view-transition";
 
 export default function Shell(
-  props: PropsWithChildren<{ title?: string; right?: React.ReactNode }>,
+  props: PropsWithChildren<{ title?: string; right?: React.ReactNode; left?: React.ReactNode }>,
 ) {
   const navigate = useViewTransitionNavigate();
 
   return (
     <div className="min-h-dvh edor-grid">
+      <ProximityBanner />
       <MiniPlayer />
       <div className="mx-auto w-full max-w-md px-4 pb-24 pt-5" style={{ viewTransitionName: "page" } as React.CSSProperties}>
         <header className="flex items-center justify-between">
-          <a
-            href="/"
-            onClick={(e) => {
-              if (e.metaKey || e.ctrlKey || e.shiftKey) return;
-              e.preventDefault();
-              navigate("/");
-            }}
-            className={cn(
-              "group inline-flex items-center gap-2 rounded-full px-3 py-2",
-              "text-xs font-medium tracking-wide text-white/80 hover:text-white",
-              "hover:bg-white/5 active:bg-white/10 transition",
-            )}
-            data-testid="link-home"
-          >
-            <span className="font-serif italic text-white/90">EDØR</span>
-            <span className="text-white/35">/</span>
-            <span className="text-white/70">Pulse</span>
-          </a>
+          {props.left ? (
+            <div>{props.left}</div>
+          ) : (
+            <a
+              href="/"
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                e.preventDefault();
+                navigate("/");
+              }}
+              className={cn(
+                "group inline-flex items-center gap-2 rounded-full px-3 py-2",
+                "text-xs font-medium tracking-wide text-white/80 hover:text-white",
+                "hover:bg-white/5 active:bg-white/10 transition",
+              )}
+              data-testid="link-home"
+            >
+              <span className="font-serif italic text-white/90">EDØR</span>
+              <span className="text-white/35">/</span>
+              <span className="text-white/70">Pulse</span>
+            </a>
+          )}
           {props.right ? <div>{props.right}</div> : null}
         </header>
 
