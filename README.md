@@ -1,48 +1,62 @@
-# EDØR - Place-Based Music & Culture
+# EDØR — Place-Based Music & Culture
 
-## Setup Instructions
+EDØR is a location-based music discovery platform. Users physically visit city locations (or tap NFC tags) to unlock exclusive audio content tied to those places. Think of it as a city-wide treasure hunt for music.
 
-This is a Rapid Prototype mockup. To transition to a full-stack application with real persistence, the following environment variables are required:
+## Features
 
-### Required Environment Variables
+- **Discover & Park modes** — Discover new content while moving around the city, or Park at a location for a longer, uninterrupted listening session
+- **GPS & NFC unlocking** — Walk near a node to unlock its tracks, or tap a physical NFC tag for instant access without GPS
+- **Listening Circles** — Create or join a synchronized group listening room; share via QR code so friends can listen together in real time
+- **Library** — A personal collection of every track you've unlocked
+- **Social** — Add friends, see what they're listening to, start a private listen-chat with friends who share a track
+- **Artist dashboard** — Upload audio, artwork, and video; create location-based campaigns with time windows; track per-node play metrics
+- **Admin panel** — Manage locations, content, assignments, and NFC slugs (passcode-protected)
 
-- `SUPABASE_URL`: Your Supabase project URL (found in Project Settings -> API)
-- `SUPABASE_ANON_KEY`: Your Supabase anonymous API key (found in Project Settings -> API)
+## Tech Stack
 
-### How to add them:
-1. Open the **Secrets** tab in Replit.
-2. Add a new secret with the key `SUPABASE_URL` and your URL as the value.
-3. Add a new secret with the key `SUPABASE_ANON_KEY` and your key as the value.
+- **Frontend**: React 18 + TypeScript, Vite, Tailwind CSS, shadcn/ui, Framer Motion, TanStack React Query, Wouter
+- **Backend**: Node.js + Express 5, TypeScript (tsx), Drizzle ORM
+- **Database**: PostgreSQL
+- **Storage**: Replit Object Storage (audio, artwork, video uploads)
+- **Auth**: Email/password, Google Sign-In (optional), guest login
 
-*Note: In the current mockup mode, missing variables will trigger a helpful error screen which can be bypassed for demonstration purposes.*
+## Getting Started
 
-## Supabase OAuth Configuration (Google)
+### Prerequisites
 
-To enable "Continue with Google":
+- Node.js 18+
+- A PostgreSQL database
 
-1. Go to Authentication -> Providers -> Google in your Supabase dashboard.
-2. Enable Google provider.
-3. Configure the **Redirect URL** in Supabase to match your Replit deployment:
-   - For local development/preview: `https://<your-replit-url>/auth/callback` (or simply the root URL if handling client-side)
-   - Note: You must add the specific Replit domain (e.g., `https://edor-prototype.<username>.repl.co`) to the "Redirect URLs" whitelist in Authentication -> URL Configuration.
+### Environment Variables
 
-## Supabase OAuth Configuration (Apple)
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `SESSION_SECRET` | Yes | Secret used to sign session cookies |
+| `GOOGLE_CLIENT_ID` | No | Enables "Continue with Google" on the login page |
 
-To enable "Continue with Apple":
+### Running Locally
 
-1. **Apple Developer Portal:**
-   - Create an App ID with "Sign In with Apple" capability enabled.
-   - Create a Service ID (Identifier) for your web app.
-     - Enable "Sign In with Apple" for this Service ID.
-     - Configure the Return URLs (Redirect URIs):
-       - `https://<your-supabase-project-ref>.supabase.co/auth/v1/callback`
-   - Create a Private Key for "Sign In with Apple". Download the `.p8` file.
+```bash
+npm install
+npm run db:push   # sync database schema
+npm run dev       # start dev server (Vite + Express)
+```
 
-2. **Supabase Dashboard:**
-   - Go to Authentication -> Providers -> Apple.
-   - Enable Apple provider.
-   - **Service ID**: The identifier you created above (e.g., `com.example.app.service`).
-   - **Team ID**: Your Apple Developer Team ID (found in top right of developer portal).
-   - **Key ID**: The ID of the private key you created (e.g., `ABC1234567`).
-   - **Private Key**: Paste the contents of the `.p8` file.
-   - **Redirect URL**: Ensure your Replit URL is whitelisted in Supabase Authentication -> URL Configuration.
+The app runs at `http://localhost:5000` by default.
+
+## Authentication
+
+- **Email/password** — Register and log in with an email address and password
+- **Google Sign-In** — Set `GOOGLE_CLIENT_ID` to enable the Google button on the login page (requires a Google Cloud OAuth 2.0 credential with the app's domain as an authorised origin)
+- **Guest login** — Username `guest`, password `edor` (limited access, no persistent library)
+- **Admin** — Same guest credentials via the Admin tab on the login page
+
+## Admin Panel
+
+Access `/admin` after logging in as an admin user. From there you can:
+
+- Add / edit / delete physical locations (with lat/lng and NFC slug)
+- Upload and manage audio content
+- Create assignments that link content to locations with optional time windows
+- Copy NFC tag URLs directly from the location card
