@@ -274,16 +274,27 @@ export function pickContentForLocationMode(
   data: PulseData,
   args: { locationId: string; mode: PulseMode },
 ) {
+  const all = pickAllContentForLocationMode(data, args);
+  return all[0] ?? null;
+}
+
+export function pickAllContentForLocationMode(
+  data: PulseData,
+  args: { locationId: string; mode: PulseMode },
+): Array<{ assignment: PulseData["assignments"][number]; content: ApiContent }> {
   const now = new Date().getTime();
   const active = data.assignments
-    .filter(a => a.locationId === args.locationId && a.mode === args.mode &&
-      now >= new Date(a.startAt).getTime() && now <= new Date(a.endAt).getTime())
+    .filter(
+      (a) =>
+        a.locationId === args.locationId &&
+        a.mode === args.mode &&
+        now >= new Date(a.startAt).getTime() &&
+        now <= new Date(a.endAt).getTime(),
+    )
     .sort((x, y) => new Date(y.startAt).getTime() - new Date(x.startAt).getTime());
-  const a = active[0];
-  if (!a) return null;
-  const c = data.contents.find(x => x.id === a.contentId);
-  if (!c) return null;
-  return { assignment: a, content: c };
+  return active
+    .map((a) => ({ assignment: a, content: data.contents.find((x) => x.id === a.contentId)! }))
+    .filter(({ content }) => !!content);
 }
 
 // ── Social types ─────────────────────────────────────────
